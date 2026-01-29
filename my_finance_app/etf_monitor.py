@@ -272,14 +272,19 @@ class TimeETFMonitor:
 
             try:
                 # yfinance로 특정 날짜 범위 데이터 가져오기
-                # date_prev, date_today로부터 전후 5일씩 여유를 두고 가져옴 (주말/휴일 대비)
+                # 중요: ETF 포트폴리오 날짜는 전날 미국 종가 기준
+                # 예: 1/30 포트폴리오 = 1/29 종가 기준 → date_today를 하루 빼서 조회
                 from datetime import datetime, timedelta
 
                 date_prev_dt = datetime.strptime(date_prev, '%Y-%m-%d')
                 date_today_dt = datetime.strptime(date_today, '%Y-%m-%d')
 
-                start_date = (date_prev_dt - timedelta(days=5)).strftime('%Y-%m-%d')
-                end_date = (date_today_dt + timedelta(days=5)).strftime('%Y-%m-%d')
+                # ETF 포트폴리오는 전날 종가 기준이므로 하루 빼기
+                date_prev_price_dt = date_prev_dt - timedelta(days=1)
+                date_today_price_dt = date_today_dt - timedelta(days=1)
+
+                start_date = (date_prev_price_dt - timedelta(days=5)).strftime('%Y-%m-%d')
+                end_date = (date_today_price_dt + timedelta(days=5)).strftime('%Y-%m-%d')
 
                 ticker = yf.Ticker(ticker_symbol)
                 hist = ticker.history(start=start_date, end=end_date)
@@ -301,15 +306,15 @@ class TimeETFMonitor:
                 # 요청한 날짜에 가장 가까운 영업일 찾기
                 hist.index = hist.index.tz_localize(None)  # timezone 제거
 
-                # date_prev에 가장 가까운 날짜
-                prev_candidates = hist[hist.index <= date_prev_dt]
+                # date_prev 포트폴리오에 해당하는 종가 (date_prev - 1)
+                prev_candidates = hist[hist.index <= date_prev_price_dt]
                 if len(prev_candidates) == 0:
                     prev_candidates = hist  # fallback
                 prev_close = prev_candidates.iloc[-1]['Close']
                 prev_date_used = prev_candidates.iloc[-1].name.strftime('%Y-%m-%d')
 
-                # date_today에 가장 가까운 날짜
-                today_candidates = hist[hist.index <= date_today_dt]
+                # date_today 포트폴리오에 해당하는 종가 (date_today - 1)
+                today_candidates = hist[hist.index <= date_today_price_dt]
                 if len(today_candidates) == 0:
                     today_candidates = hist  # fallback
                 today_close = today_candidates.iloc[-1]['Close']
@@ -627,13 +632,18 @@ class KiwoomETFMonitor:
 
             try:
                 # yfinance로 특정 날짜 범위 데이터 가져오기
+                # ETF 포트폴리오는 전날 미국 종가 기준
                 from datetime import datetime, timedelta
 
                 date_prev_dt = datetime.strptime(date_prev, '%Y-%m-%d')
                 date_today_dt = datetime.strptime(date_today, '%Y-%m-%d')
 
-                start_date = (date_prev_dt - timedelta(days=5)).strftime('%Y-%m-%d')
-                end_date = (date_today_dt + timedelta(days=5)).strftime('%Y-%m-%d')
+                # ETF 포트폴리오는 전날 종가 기준이므로 하루 빼기
+                date_prev_price_dt = date_prev_dt - timedelta(days=1)
+                date_today_price_dt = date_today_dt - timedelta(days=1)
+
+                start_date = (date_prev_price_dt - timedelta(days=5)).strftime('%Y-%m-%d')
+                end_date = (date_today_price_dt + timedelta(days=5)).strftime('%Y-%m-%d')
 
                 ticker = yf.Ticker(ticker_symbol)
                 hist = ticker.history(start=start_date, end=end_date)
@@ -654,15 +664,15 @@ class KiwoomETFMonitor:
                 # 요청한 날짜에 가장 가까운 영업일 찾기
                 hist.index = hist.index.tz_localize(None)  # timezone 제거
 
-                # date_prev에 가장 가까운 날짜
-                prev_candidates = hist[hist.index <= date_prev_dt]
+                # date_prev 포트폴리오에 해당하는 종가 (date_prev - 1)
+                prev_candidates = hist[hist.index <= date_prev_price_dt]
                 if len(prev_candidates) == 0:
                     prev_candidates = hist
                 prev_close = prev_candidates.iloc[-1]['Close']
                 prev_date_used = prev_candidates.iloc[-1].name.strftime('%Y-%m-%d')
 
-                # date_today에 가장 가까운 날짜
-                today_candidates = hist[hist.index <= date_today_dt]
+                # date_today 포트폴리오에 해당하는 종가 (date_today - 1)
+                today_candidates = hist[hist.index <= date_today_price_dt]
                 if len(today_candidates) == 0:
                     today_candidates = hist
                 today_close = today_candidates.iloc[-1]['Close']
