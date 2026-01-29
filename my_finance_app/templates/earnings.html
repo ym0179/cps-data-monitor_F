@@ -53,6 +53,30 @@
         font-weight: 600;
         color: #374151;
         padding: 0.75rem;
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+    }
+
+    .earnings-table th.sortable:hover {
+        background-color: #f3f4f6;
+    }
+
+    .earnings-table th.sortable::after {
+        content: '⇅';
+        margin-left: 0.5rem;
+        color: #9ca3af;
+        font-size: 0.75rem;
+    }
+
+    .earnings-table th.sort-asc::after {
+        content: '↑';
+        color: #3b82f6;
+    }
+
+    .earnings-table th.sort-desc::after {
+        content: '↓';
+        color: #3b82f6;
     }
 
     .earnings-table td {
@@ -230,17 +254,17 @@
                     <table class="table table-hover earnings-table mb-0">
                         <thead>
                             <tr>
-                                <th style="width: 7%;">Symbol</th>
-                                <th style="width: 18%;">Company</th>
-                                <th style="width: 8%;">Date</th>
-                                <th style="width: 7%;">Call Time</th>
-                                <th style="width: 7%;" class="text-end">EPS Est.</th>
-                                <th style="width: 8%;">Market Cap</th>
-                                <th style="width: 9%;">Analyst Rating</th>
-                                <th style="width: 6%;" class="text-center"># Analysts</th>
-                                <th style="width: 8%;" class="text-end">Avg Move (%)<small>3yr avg</small></th>
-                                <th style="width: 7%;" class="text-end">Vol (%)<small>3yr std</small></th>
-                                <th style="width: 15%;">Trade Alert</th>
+                                <th style="width: 7%;" class="sortable" data-sort="symbol">Symbol</th>
+                                <th style="width: 18%;" class="sortable" data-sort="company">Company</th>
+                                <th style="width: 8%;" class="sortable" data-sort="date">Date</th>
+                                <th style="width: 7%;" class="sortable" data-sort="calltime">Call Time</th>
+                                <th style="width: 7%;" class="text-end sortable" data-sort="eps">EPS Est.</th>
+                                <th style="width: 8%;" class="sortable" data-sort="marketcap">Market Cap</th>
+                                <th style="width: 9%;" class="sortable" data-sort="rating">Analyst Rating</th>
+                                <th style="width: 6%;" class="text-center sortable" data-sort="analystcount"># Analysts</th>
+                                <th style="width: 8%;" class="text-end sortable" data-sort="avgmove">Avg Move (%)<small>3yr avg</small></th>
+                                <th style="width: 7%;" class="text-end sortable" data-sort="volatility">Vol (%)<small>3yr std</small></th>
+                                <th style="width: 15%;" class="sortable" data-sort="alert">Trade Alert</th>
                             </tr>
                             <!-- Filter Row -->
                             <tr class="filter-row">
@@ -428,6 +452,10 @@ let allEarningsData = [];
 let filteredData = [];
 let currentPage = 0;
 const ITEMS_PER_PAGE = 20;
+let currentSort = {
+    column: null,
+    direction: null  // 'asc' or 'desc'
+};
 
 // Load Earnings Events from API
 async function loadEarningsEvents() {
@@ -505,8 +533,140 @@ function applyFilters() {
         return true;
     });
 
+    // Apply current sort if exists
+    if (currentSort.column) {
+        applySorting();
+    }
+
     currentPage = 0;
     renderEarningsTable();
+}
+
+function sortData(column) {
+    // Toggle sort direction
+    if (currentSort.column === column) {
+        if (currentSort.direction === 'asc') {
+            currentSort.direction = 'desc';
+        } else if (currentSort.direction === 'desc') {
+            currentSort.column = null;
+            currentSort.direction = null;
+        } else {
+            currentSort.direction = 'asc';
+        }
+    } else {
+        currentSort.column = column;
+        currentSort.direction = 'asc';
+    }
+
+    // Update UI
+    document.querySelectorAll('.sortable').forEach(th => {
+        th.classList.remove('sort-asc', 'sort-desc');
+    });
+
+    if (currentSort.column) {
+        const th = document.querySelector(`[data-sort="${column}"]`);
+        if (th) {
+            th.classList.add(currentSort.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+        }
+        applySorting();
+    } else {
+        // Reset to original order
+        filteredData = [...filteredData];
+    }
+
+    currentPage = 0;
+    renderEarningsTable();
+}
+
+function applySorting() {
+    if (!currentSort.column) return;
+
+    filteredData.sort((a, b) => {
+        let aVal, bVal;
+
+        switch(currentSort.column) {
+            case 'symbol':
+                aVal = a.Symbol || '';
+                bVal = b.Symbol || '';
+                break;
+            case 'company':
+                aVal = a.Company || '';
+                bVal = b.Company || '';
+                break;
+            case 'date':
+                aVal = a.Date || '';
+                bVal = b.Date || '';
+                break;
+            case 'calltime':
+                aVal = a.CallTime || '';
+                bVal = b.CallTime || '';
+                break;
+            case 'eps':
+                aVal = parseFloat(a.EPSEstimate) || 0;
+                bVal = parseFloat(b.EPSEstimate) || 0;
+                break;
+            case 'marketcap':
+                aVal = parseMarketCap(a.MarketCap);
+                bVal = parseMarketCap(b.MarketCap);
+                break;
+            case 'rating':
+                aVal = getRatingValue(a.AnalystRating);
+                bVal = getRatingValue(b.AnalystRating);
+                break;
+            case 'analystcount':
+                aVal = a.AnalystCount || 0;
+                bVal = b.AnalystCount || 0;
+                break;
+            case 'avgmove':
+                aVal = a.AvgMove !== null && a.AvgMove !== undefined ? a.AvgMove : -Infinity;
+                bVal = b.AvgMove !== null && b.AvgMove !== undefined ? b.AvgMove : -Infinity;
+                break;
+            case 'volatility':
+                aVal = a.Volatility !== null && a.Volatility !== undefined ? a.Volatility : -Infinity;
+                bVal = b.Volatility !== null && b.Volatility !== undefined ? b.Volatility : -Infinity;
+                break;
+            case 'alert':
+                aVal = a.TradeAlert && a.TradeAlert !== '-' ? 1 : 0;
+                bVal = b.TradeAlert && b.TradeAlert !== '-' ? 1 : 0;
+                break;
+            default:
+                return 0;
+        }
+
+        // String comparison
+        if (typeof aVal === 'string') {
+            return currentSort.direction === 'asc'
+                ? aVal.localeCompare(bVal)
+                : bVal.localeCompare(aVal);
+        }
+
+        // Number comparison
+        return currentSort.direction === 'asc'
+            ? aVal - bVal
+            : bVal - aVal;
+    });
+}
+
+function parseMarketCap(capStr) {
+    if (!capStr || capStr === '-') return 0;
+
+    const num = parseFloat(capStr);
+    if (isNaN(num)) return 0;
+
+    if (capStr.includes('T')) return num * 1000000000000;
+    if (capStr.includes('B')) return num * 1000000000;
+    if (capStr.includes('M')) return num * 1000000;
+    return num;
+}
+
+function getRatingValue(rating) {
+    if (!rating) return 999;
+    const r = rating.toLowerCase();
+    if (r.includes('strong buy')) return 1;
+    if (r.includes('buy')) return 2;
+    if (r.includes('hold')) return 3;
+    if (r.includes('sell')) return 4;
+    return 999;
 }
 
 function getRatingText(rating) {
@@ -609,6 +769,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('filterCallTime').addEventListener('change', applyFilters);
     document.getElementById('filterRating').addEventListener('change', applyFilters);
     document.getElementById('filterAlert').addEventListener('change', applyFilters);
+
+    // Add sort event listeners
+    document.querySelectorAll('.sortable').forEach(th => {
+        th.addEventListener('click', () => {
+            const sortColumn = th.getAttribute('data-sort');
+            sortData(sortColumn);
+        });
+    });
 });
 </script>
 {% endblock %}
