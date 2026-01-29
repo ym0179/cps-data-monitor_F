@@ -9,7 +9,7 @@
 =============================================================================
 """
 
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, Response
 import pandas as pd
 import numpy as np
 import requests
@@ -362,8 +362,13 @@ def index():
 
 @app.route('/market')
 def market():
-    """MS Monitoring 페이지"""
+    """Market Data - 메인 (Browser/OS M/S)"""
     return render_template('market.html')
+
+@app.route('/market/search-engine')
+def search_engine():
+    """Market Data - Search Engine M/S 페이지"""
+    return render_template('search_engine.html')
 
 @app.route('/earnings')
 def earnings():
@@ -583,6 +588,72 @@ def api_idio_score():
 
     result = calculate_idio_score_simple(ticker, sector)
     return jsonify(result)
+
+
+# =============================================================================
+# Search Engine M/S API 엔드포인트
+# =============================================================================
+
+@app.route('/api/search-engine/all')
+def api_search_engine_all():
+    """
+    Search Engine 시장점유율 전체 데이터 API
+    Desktop+Mobile, Desktop, Mobile 3가지 데이터 반환
+
+    Response:
+    {
+        "desktop_mobile": { "dates": [...], "Google": [...], "Yahoo": [...], ... },
+        "desktop": { ... },
+        "mobile": { ... }
+    }
+    """
+    result = {}
+
+    for device_key, device_val in [('desktop_mobile', 'desktop-mobile'), ('desktop', 'desktop'), ('mobile', 'mobile')]:
+        df = fetch_statcounter_data(metric="search_engine", device=device_val, from_year="2019")
+        if not df.empty:
+            # NaN을 0으로 대체하지 않고 실제 값만 사용
+            df = df.dropna(axis=1, how='all')  # 전체가 NaN인 컬럼 제거
+
+            data = {'dates': df.index.tolist()}
+            for col in df.columns:
+                # NaN 값을 None으로 변환 (JSON에서 null로 표현)
+                values = df[col].tolist()
+                # 숫자 값만 유지, NaN은 None으로
+                data[col] = [v if pd.notna(v) else None for v in values]
+            result[device_key] = data
+        else:
+            result[device_key] = {'dates': [], 'error': 'No data'}
+
+    return jsonify(result)
+
+
+@app.route('/api/search-engine/download')
+def api_search_engine_download():
+    """
+    Search Engine 데이터 Excel 다운로드 API
+    """
+    output = io.BytesIO()
+
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        for device_key, device_val, sheet_name in [
+            ('desktop_mobile', 'desktop-mobile', 'Desktop+Mobile'),
+            ('desktop', 'desktop', 'Desktop'),
+            ('mobile', 'mobile', 'Mobile')
+        ]:
+            df = fetch_statcounter_data(metric="search_engine", device=device_val, from_year="2019")
+            if not df.empty:
+                # 인덱스(날짜)를 컬럼으로 변환
+                df_export = df.reset_index()
+                df_export.to_excel(writer, sheet_name=sheet_name, index=False)
+
+    output.seek(0)
+
+    return Response(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        headers={'Content-Disposition': 'attachment; filename=search_engine_ms.xlsx'}
+    )
 
 
 if __name__ == '__main__':

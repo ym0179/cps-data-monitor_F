@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+
+{% block title %}Search Engine M/S - Market Data{% endblock %}
+
+{% block extra_css %}
+<style>
+    .data-table {
+        font-size: 11px;
+        overflow-x: auto;
+    }
+    .data-table table {
+        min-width: 100%;
+        border-collapse: collapse;
+    }
+    .data-table th, .data-table td {
+        padding: 4px 6px;
+        text-align: center;
+        border: 1px solid #ddd;
+        white-space: nowrap;
+    }
+    .data-table th {
+        background: #f5f5f5;
+        font-weight: 600;
+        position: sticky;
+        left: 0;
+        z-index: 1;
+    }
+    .data-table td:first-child {
+        position: sticky;
+        left: 0;
+        background: #fff;
+        font-weight: 500;
+        z-index: 1;
+    }
+    /* 색상 포맷팅 */
+    .bg-google { background-color: #c6efce !important; color: #006100; }
+    .bg-yahoo { background-color: #fff2cc !important; }
+    .bg-other { background-color: #f2f2f2 !important; }
+    .bg-bing { background-color: #ffc7ce !important; color: #9c0006; }
+
+    .section-title {
+        background: linear-gradient(90deg, #198754 0%, #20c997 100%);
+        color: white;
+        padding: 8px 15px;
+        font-weight: 600;
+        margin-bottom: 0;
+    }
+    .chart-container {
+        height: 350px;
+    }
+    .table-scroll {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 py-3">
+    <!-- 헤더 -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="mb-1"><i class="bi bi-search text-success me-2"></i>Search Engine M/S</h4>
+            <p class="text-muted mb-0">
+                <small>Data Source: <a href="https://gs.statcounter.com/search-engine-market-share" target="_blank">StatCounter Global Stats</a></small>
+            </p>
+        </div>
+        <div>
+            <a href="/api/search-engine/download" class="btn btn-success btn-sm">
+                <i class="bi bi-file-earmark-excel me-1"></i>Excel 다운로드
+            </a>
+            <a href="/market" class="btn btn-outline-secondary btn-sm ms-2">
+                <i class="bi bi-arrow-left me-1"></i>Market Data
+            </a>
+        </div>
+    </div>
+
+    <!-- 데이터 테이블 섹션 -->
+    <div class="card mb-4">
+        <div class="section-title">Search Engine M/S</div>
+        <div class="card-body p-2">
+            <!-- Desktop+Mobile 테이블 -->
+            <div class="mb-3">
+                <h6 class="text-muted mb-2">Desktop + Mobile</h6>
+                <div class="data-table" id="tableDesktopMobile">
+                    <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Loading...</div>
+                </div>
+            </div>
+
+            <!-- Desktop 테이블 -->
+            <div class="mb-3">
+                <h6 class="text-muted mb-2">Desktop</h6>
+                <div class="data-table" id="tableDesktop">
+                    <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Loading...</div>
+                </div>
+            </div>
+
+            <!-- Mobile 테이블 -->
+            <div class="mb-3">
+                <h6 class="text-muted mb-2">Mobile</h6>
+                <div class="data-table" id="tableMobile">
+                    <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 차트 섹션 -->
+    <div class="row g-3">
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-header py-2">
+                    <small class="fw-bold">Search Engine M/S (%, Desktop+Mobile)</small>
+                </div>
+                <div class="card-body p-2">
+                    <div id="chartDesktopMobile" class="chart-container">
+                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-header py-2">
+                    <small class="fw-bold">Search Engine M/S (%, Desktop)</small>
+                </div>
+                <div class="card-body p-2">
+                    <div id="chartDesktop" class="chart-container">
+                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-header py-2">
+                    <small class="fw-bold">Search Engine M/S (%, Mobile)</small>
+                </div>
+                <div class="card-body p-2">
+                    <div id="chartMobile" class="chart-container">
+                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100">
+                <div class="card-header py-2">
+                    <small class="fw-bold">Google Search Ads Rev. Mix (%)</small>
+                </div>
+                <div class="card-body p-2">
+                    <div id="chartRevMix" class="chart-container">
+                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<script>
+// 색상 설정
+const COLORS = {
+    'Google': '#34a853',
+    'Yahoo': '#6001d2',
+    'Other': '#999999',
+    'Bing': '#f25022',
+    'Baidu': '#2932e1',
+    'YANDEX': '#ff0000',
+    'DuckDuckGo': '#de5833'
+};
+
+// 행 색상 클래스 매핑
+function getRowClass(name) {
+    if (name.includes('Google')) return 'bg-google';
+    if (name.includes('Yahoo')) return 'bg-yahoo';
+    if (name.includes('Bing')) return 'bg-bing';
+    if (name.includes('Other')) return 'bg-other';
+    return '';
+}
+
+// 테이블 생성 함수
+function createTable(containerId, data, suffix) {
+    const container = document.getElementById(containerId);
+    if (!data || !data.dates || data.dates.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center py-3">No data available</p>';
+        return;
+    }
+
+    const dates = data.dates;
+    // 주요 검색엔진만 필터링
+    const engines = ['Google', 'Yahoo', 'Other', 'Bing'].filter(e => data[e]);
+
+    let html = '<div style="overflow-x:auto;"><table><thead><tr><th></th>';
+
+    // 최근 36개월 데이터만 표시
+    const recentDates = dates.slice(-36);
+    const startIdx = dates.length - 36;
+
+    recentDates.forEach(d => {
+        html += `<th>${d}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+
+    engines.forEach(engine => {
+        const rowClass = getRowClass(engine);
+        html += `<tr class="${rowClass}"><td>${engine} (${suffix})</td>`;
+
+        const values = data[engine].slice(startIdx < 0 ? 0 : startIdx);
+        values.forEach(v => {
+            const displayVal = v !== null ? v.toFixed(1) : '-';
+            html += `<td>${displayVal}</td>`;
+        });
+        html += '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+// 스택형 바 차트 생성 함수
+function createStackedBarChart(containerId, data, title) {
+    const container = document.getElementById(containerId);
+    if (!data || !data.dates || data.dates.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center py-5">No data available</p>';
+        return;
+    }
+
+    // 주요 검색엔진만 사용
+    const engines = ['Google', 'Yahoo', 'Other', 'Bing'].filter(e => data[e]);
+
+    // 최근 60개월 데이터
+    const recentDates = data.dates.slice(-60);
+    const startIdx = Math.max(0, data.dates.length - 60);
+
+    const traces = engines.map(engine => ({
+        x: recentDates,
+        y: data[engine].slice(startIdx).map(v => v || 0),
+        name: engine,
+        type: 'bar',
+        marker: { color: COLORS[engine] || '#888' }
+    }));
+
+    const layout = {
+        barmode: 'stack',
+        margin: { t: 10, b: 60, l: 40, r: 10 },
+        xaxis: {
+            tickangle: -45,
+            tickfont: { size: 8 },
+            dtick: 6  // 6개월 간격으로 표시
+        },
+        yaxis: {
+            title: '%',
+            range: [0, 100],
+            tickformat: '.0f'
+        },
+        legend: {
+            orientation: 'h',
+            y: -0.3,
+            font: { size: 9 }
+        },
+        showlegend: true
+    };
+
+    Plotly.newPlot(containerId, traces, layout, {responsive: true, displayModeBar: false});
+}
+
+// Google Ads Revenue Mix 차트 (시뮬레이션 데이터)
+function createRevMixChart() {
+    // 연도별 데이터 (실제로는 별도 데이터소스 필요)
+    const years = ['2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024', '2025'];
+    const mobileData = [53, 57, 61, 63, 67, 68, 69, 70, 70];
+    const desktopData = years.map((_, i) => 100 - mobileData[i]);
+
+    const traces = [
+        {
+            x: years,
+            y: mobileData,
+            name: 'Mobile Search (% of search rev.)',
+            type: 'bar',
+            marker: { color: '#34a853' },
+            text: mobileData.map(v => v + '%'),
+            textposition: 'inside',
+            textfont: { color: 'white', size: 10 }
+        },
+        {
+            x: years,
+            y: desktopData,
+            name: 'Desktop Search (% of search rev.)',
+            type: 'bar',
+            marker: { color: '#999' },
+            text: desktopData.map(v => v + '%'),
+            textposition: 'inside',
+            textfont: { color: 'white', size: 10 }
+        }
+    ];
+
+    const layout = {
+        barmode: 'stack',
+        margin: { t: 10, b: 40, l: 40, r: 10 },
+        xaxis: { tickfont: { size: 10 } },
+        yaxis: {
+            title: '%',
+            range: [0, 100],
+            tickformat: '.0f'
+        },
+        legend: {
+            orientation: 'h',
+            y: -0.25,
+            font: { size: 8 }
+        },
+        showlegend: true
+    };
+
+    Plotly.newPlot('chartRevMix', traces, layout, {responsive: true, displayModeBar: false});
+}
+
+// 데이터 로드 및 렌더링
+fetch('/api/search-engine/all')
+    .then(res => res.json())
+    .then(data => {
+        // 테이블 생성
+        createTable('tableDesktopMobile', data.desktop_mobile, 'Desktop+Mobile');
+        createTable('tableDesktop', data.desktop, 'Desktop');
+        createTable('tableMobile', data.mobile, 'Mobile');
+
+        // 차트 생성
+        createStackedBarChart('chartDesktopMobile', data.desktop_mobile);
+        createStackedBarChart('chartDesktop', data.desktop);
+        createStackedBarChart('chartMobile', data.mobile);
+        createRevMixChart();
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        ['tableDesktopMobile', 'tableDesktop', 'tableMobile'].forEach(id => {
+            document.getElementById(id).innerHTML = '<p class="text-danger text-center py-3">Failed to load data</p>';
+        });
+        ['chartDesktopMobile', 'chartDesktop', 'chartMobile', 'chartRevMix'].forEach(id => {
+            document.getElementById(id).innerHTML = '<p class="text-danger text-center py-5">Failed to load chart</p>';
+        });
+    });
+</script>
+{% endblock %}
