@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}검색 - MAS Finance{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 py-3">
+
+    <!-- 검색창 -->
+    <div class="search-box mb-4">
+        <form action="/search" method="GET" class="position-relative">
+            <input type="text"
+                   name="q"
+                   value="{{ query }}"
+                   class="form-control form-control-lg search-input"
+                   placeholder="종목명 또는 심볼을 입력하세요"
+                   autofocus>
+            <button type="submit" class="btn search-btn">
+                <i class="bi bi-search"></i>
+            </button>
+        </form>
+    </div>
+
+    {% if query %}
+    <!-- 검색 결과 -->
+    <div class="mb-3">
+        <h6 class="text-muted">"{{ query }}" 검색 결과</h6>
+    </div>
+
+    <div class="list-group">
+        <!-- 검색 결과 아이템 예시 -->
+        <a href="#" class="list-group-item list-group-item-action">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1">AAPL</h6>
+                    <small class="text-muted">Apple Inc.</small>
+                </div>
+                <div class="text-end">
+                    <span class="fw-bold">$185.50</span>
+                    <small class="text-success d-block">+2.3%</small>
+                </div>
+            </div>
+        </a>
+
+        <a href="#" class="list-group-item list-group-item-action">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-1">AMAT</h6>
+                    <small class="text-muted">Applied Materials</small>
+                </div>
+                <div class="text-end">
+                    <span class="fw-bold">$156.20</span>
+                    <small class="text-danger d-block">-1.2%</small>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    {% else %}
+    <!-- 검색 전 상태 -->
+    <div class="text-center py-5">
+        <i class="bi bi-search text-muted" style="font-size: 4rem;"></i>
+        <p class="text-muted mt-3">종목명 또는 심볼을 검색하세요</p>
+    </div>
+
+    <!-- 인기 검색어 -->
+    <div class="mt-4">
+        <h6 class="mb-3"><i class="bi bi-fire text-danger me-2"></i>인기 검색어</h6>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="/search?q=NVDA" class="btn btn-outline-secondary btn-sm">NVDA</a>
+            <a href="/search?q=AAPL" class="btn btn-outline-secondary btn-sm">AAPL</a>
+            <a href="/search?q=MSFT" class="btn btn-outline-secondary btn-sm">MSFT</a>
+            <a href="/search?q=GOOGL" class="btn btn-outline-secondary btn-sm">GOOGL</a>
+            <a href="/search?q=AMZN" class="btn btn-outline-secondary btn-sm">AMZN</a>
+            <a href="/search?q=META" class="btn btn-outline-secondary btn-sm">META</a>
+            <a href="/search?q=TSLA" class="btn btn-outline-secondary btn-sm">TSLA</a>
+        </div>
+    </div>
+
+    <!-- 최근 검색어 -->
+    <div class="mt-4">
+        <h6 class="mb-3"><i class="bi bi-clock-history me-2"></i>최근 검색어</h6>
+        <div class="list-group" id="recent-searches">
+            <p class="text-muted small">최근 검색 기록이 없습니다</p>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

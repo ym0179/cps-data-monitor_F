@@ -1,0 +1,25 @@
+# Flask 웹 프레임워크
+flask==3.0.0
+
+# 데이터 처리
+pandas==2.1.3
+numpy==1.26.2
+
+# 금융 데이터
+yfinance==0.2.33
+FinanceDataReader==0.9.66
+
+# 웹 스크래핑
+requests==2.31.0
+beautifulsoup4==4.12.2
+lxml==4.9.3
+
+# 차트 (선택사항 - Plotly 사용시)
+plotly==5.18.0
+
+# 엑셀 처리
+openpyxl==3.1.2
+
+# 기타 유틸리티
+pytz==2023.3
+python-dateutil==2.8.2
