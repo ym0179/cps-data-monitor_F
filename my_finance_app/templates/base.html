@@ -135,13 +135,23 @@
             border: 1px solid rgba(0, 0, 0, 0.1);
             border-radius: 0.5rem;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            margin-top: 0.5rem;
+            margin-top: 0.25rem;
             padding: 0.5rem 0;
             z-index: 1000;
         }
 
-        .dropdown:hover .dropdown-menu,
-        .dropdown-menu:hover {
+        /* 호버 영역 연결을 위한 가상 요소 */
+        .dropdown::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            height: 0.25rem;
+            background: transparent;
+        }
+
+        .dropdown:hover .dropdown-menu {
             display: block;
         }
 
