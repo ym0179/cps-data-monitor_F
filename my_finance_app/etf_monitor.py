@@ -28,7 +28,9 @@ class TimeETFMonitor:
 
     # ISIN 코드 → yfinance 티커 매핑 테이블
     ISIN_TO_TICKER = {
-        'CA13321L1085': 'CCJ',  # Cameco Corp
+        'CA13321L1085': 'CCJ',      # Cameco Corp
+        'US02079K3059': 'GOOGL',    # Alphabet Inc Class A
+        'US02079K1079': 'GOOG',     # Alphabet Inc Class C
         # 필요시 추가 매핑
     }
 

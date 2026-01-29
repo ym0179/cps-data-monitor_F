@@ -22,6 +22,7 @@ import requests
 import io
 from datetime import datetime, timedelta
 import urllib3
+import pytz
 
 # 현재 스크립트의 디렉토리를 sys.path에 추가 (etf_monitor import를 위해)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -227,10 +228,20 @@ def update_active_etf_cache():
     rebalancing_cache_dir = os.path.join(CACHE_DIR, 'rebalancing')
     os.makedirs(rebalancing_cache_dir, exist_ok=True)
 
-    # 최근 7일 날짜 생성
-    today = datetime.now()
-    dates_to_fetch = [(today - timedelta(days=i)).strftime('%Y-%m-%d') for i in range(7)]
+    # 최근 7일 날짜 생성 (한국시간 기준)
+    # TIME ETF 홈페이지는 한국시간 오전 7시경 업데이트됨
+    kst = pytz.timezone('Asia/Seoul')
+    now_kst = datetime.now(kst)
 
+    # 오전 7시 이전이면 전날까지만 조회 (아직 업데이트 전)
+    if now_kst.hour < 7:
+        today_kst = (now_kst - timedelta(days=1)).date()
+        print(f"  현재 KST 시간: {now_kst.strftime('%Y-%m-%d %H:%M:%S %Z')} (오전 7시 이전 - 전날까지 조회)")
+    else:
+        today_kst = now_kst.date()
+        print(f"  현재 KST 시간: {now_kst.strftime('%Y-%m-%d %H:%M:%S %Z')} (오전 7시 이후 - 오늘까지 조회)")
+
+    dates_to_fetch = [(today_kst - timedelta(days=i)).strftime('%Y-%m-%d') for i in range(7)]
     print(f"  조회 날짜: {dates_to_fetch}")
 
     for etf_config in etf_configs:
