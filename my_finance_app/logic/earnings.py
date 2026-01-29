@@ -282,8 +282,10 @@ def calculate_earnings_metrics(ticker, years=3):
         if not earnings_dates:
             return result
 
-        # Filter to last N years
-        cutoff_date = datetime.datetime.now() - datetime.timedelta(days=365 * years)
+        # Filter to last N years (normalize cutoff_date to remove timezone info)
+        cutoff_date = pd.Timestamp(datetime.datetime.now() - datetime.timedelta(days=365 * years)).normalize()
+        # Ensure all earnings_dates are timezone-naive for comparison
+        earnings_dates = [pd.Timestamp(d).tz_localize(None).normalize() for d in earnings_dates]
         earnings_dates = [d for d in earnings_dates if d >= cutoff_date]
 
         if not earnings_dates:
@@ -294,6 +296,10 @@ def calculate_earnings_metrics(ticker, years=3):
 
         if price_df.empty:
             return result
+
+        # Ensure price_df index is timezone-naive
+        if hasattr(price_df.index, 'tz') and price_df.index.tz is not None:
+            price_df.index = price_df.index.tz_localize(None)
 
         # 3. Calculate returns on earnings dates
         returns = []
