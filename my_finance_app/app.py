@@ -745,10 +745,10 @@ ETF_CONFIG = [
     },
     {
         'id': 'kiwoom_growth30',
-        'name': 'KOSEF 미국성장기업30',
+        'name': 'KIWOOM 미국성장기업30액티브',
         'type': 'kiwoom',
         'code': '459790',
-        'description': 'KOSEF 미국성장기업30 Active'
+        'description': 'KIWOOM 미국성장기업30액티브'
     }
 ]
 

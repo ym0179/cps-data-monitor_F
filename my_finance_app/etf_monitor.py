@@ -51,7 +51,12 @@ class TimeETFMonitor:
         }
 
         try:
+            full_url = f"{self.BASE_URL}?idx={self.etf_idx}&pdfDate={date_param}"
+            print(f"[TIME ETF] Fetching: {full_url}")
+
             resp = requests.get(self.BASE_URL, params=params, headers=self.HEADERS, timeout=10)
+            print(f"[TIME ETF] Response status: {resp.status_code}")
+
             if resp.status_code != 200:
                 print(f"[TIME ETF] Status {resp.status_code} for {date_str}")
                 return pd.DataFrame()
@@ -59,19 +64,35 @@ class TimeETFMonitor:
             soup = BeautifulSoup(resp.content, 'html.parser')
 
             # Find portfolio table (class="table3 moreList1")
-            table = soup.find('table', {'class': ['table3', 'moreList1']})
+            # Try multiple ways to find the table
+            table = soup.find('table', {'class': 'table3'})
             if not table:
-                print(f"[TIME ETF] No table found for {date_str}")
-                return pd.DataFrame()
+                table = soup.find('table', {'class': 'moreList1'})
+            if not table:
+                table = soup.find('table', class_=lambda x: x and ('table3' in x or 'moreList1' in x))
+            if not table:
+                # Try finding any table
+                tables = soup.find_all('table')
+                print(f"[TIME ETF] Found {len(tables)} tables total")
+                if tables:
+                    table = tables[0]  # Use first table
+                else:
+                    print(f"[TIME ETF] No table found for {date_str}")
+                    # Print first 500 chars of HTML for debugging
+                    print(f"[TIME ETF] HTML preview: {str(soup)[:500]}")
+                    return pd.DataFrame()
 
             tbody = table.find('tbody')
             if not tbody:
-                print(f"[TIME ETF] No tbody found for {date_str}")
-                return pd.DataFrame()
+                print(f"[TIME ETF] No tbody found for {date_str}, trying to find rows directly")
+                # tbody가 없으면 table에서 직접 tr 찾기
+                rows = table.find_all('tr')
+            else:
+                rows = tbody.find_all('tr')
+
+            print(f"[TIME ETF] Found {len(rows)} rows")
 
             data = []
-            rows = tbody.find_all('tr')
-
             for row in rows:
                 cols = row.find_all('td')
                 if len(cols) < 5:
@@ -423,7 +444,7 @@ class KiwoomETFMonitor:
         self.data_dir = data_dir
         os.makedirs(self.data_dir, exist_ok=True)
         self.etf_code = "459790"
-        self.etf_name = "KOSEF 미국성장기업30 Active"
+        self.etf_name = "KIWOOM 미국성장기업30액티브"
     
     def fetch_data_from_api(self, date_str: str) -> pd.DataFrame:
         """
