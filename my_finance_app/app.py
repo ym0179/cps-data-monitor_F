@@ -779,5 +779,49 @@ def api_search_engine_download():
     )
 
 
+@app.route('/api/os-rivalry/download')
+def api_os_rivalry_download():
+    """
+    OS Market Share 데이터 Excel 다운로드 API
+    """
+    device = request.args.get('device', 'mobile')
+    start_date = request.args.get('start_date', '2020-01')
+    end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m'))
+
+    output = io.BytesIO()
+
+    # API에서 데이터 가져오기
+    df = fetch_statcounter_data(metric="os", device=device, from_year="2009")
+
+    if df.empty:
+        # 빈 엑셀 파일 반환
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            pd.DataFrame({'Error': ['No data available']}).to_excel(writer, sheet_name='Data', index=False)
+    else:
+        df_processed = process_os_data(df)
+        df_processed = df_processed.sort_index()
+
+        # 날짜 필터링
+        if start_date and end_date:
+            df_processed = df_processed[
+                (df_processed.index >= start_date) &
+                (df_processed.index <= end_date)
+            ]
+
+        df_export = df_processed.reset_index()
+        df_export.columns = ['Date'] + list(df_export.columns[1:])
+
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df_export.to_excel(writer, sheet_name=f'{device.capitalize()}', index=False)
+
+    output.seek(0)
+
+    return Response(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        headers={'Content-Disposition': f'attachment; filename=os_market_share_{device}.xlsx'}
+    )
+
+
 if __name__ == '__main__':
     app.run(debug=True)
