@@ -1139,21 +1139,28 @@ def api_earnings_calendar():
         # 3. Enrich with analyst data and earnings metrics
         enriched_data = []
 
-        for _, row in df_calendar.iterrows():
+        print(f"[Earnings API] Processing {len(df_calendar)} events...")
+
+        for idx, row in df_calendar.iterrows():
             ticker = row['Symbol']
+            print(f"[{ticker}] Processing...")
 
             # Analyst data (with error handling)
             analyst_data = {'recommendKey': None, 'analystCount': 0}
             try:
                 analyst_data = fetch_analyst_consensus(ticker)
-            except Exception:
+                print(f"[{ticker}] Analyst: {analyst_data.get('recommendKey')}, Count: {analyst_data.get('analystCount')}")
+            except Exception as e:
+                print(f"[{ticker}] Analyst fetch error: {e}")
                 pass
 
             # Earnings metrics (3-year avg move and volatility, with error handling)
             earnings_metrics = {'avg_move': None, 'volatility': None, 'num_earnings': 0}
             try:
                 earnings_metrics = calculate_earnings_metrics(ticker, years=3)
-            except Exception:
+                print(f"[{ticker}] Metrics: AvgMove={earnings_metrics.get('avg_move')}, Vol={earnings_metrics.get('volatility')}")
+            except Exception as e:
+                print(f"[{ticker}] Metrics fetch error: {e}")
                 pass
 
             # Trade Alert
@@ -1180,6 +1187,7 @@ def api_earnings_calendar():
                 'TradeAlert': trade_alert
             })
 
+        print(f"[Earnings API] Completed. Returning {len(enriched_data)} events.")
         return jsonify(enriched_data)
 
     except Exception as e:

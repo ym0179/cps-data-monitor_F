@@ -66,6 +66,73 @@
         color: #6b7280;
     }
 
+    .earnings-table th small {
+        font-size: 0.7rem;
+        color: #9ca3af;
+        font-weight: 400;
+        display: block;
+        margin-top: 0.125rem;
+    }
+
+    .filter-row {
+        background-color: #f9fafb;
+    }
+
+    .filter-row th {
+        padding: 0.5rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .filter-input {
+        width: 100%;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        outline: none;
+    }
+
+    .filter-input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 1px #3b82f6;
+    }
+
+    .filter-select {
+        width: 100%;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        outline: none;
+        background-color: white;
+    }
+
+    .filter-select:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 1px #3b82f6;
+    }
+
+    .load-more-container {
+        text-align: center;
+        padding: 1.5rem;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .load-more-btn {
+        padding: 0.5rem 1.5rem;
+        background-color: #f3f4f6;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .load-more-btn:hover {
+        background-color: #e5e7eb;
+    }
+
     .badge-score {
         padding: 0.375rem 0.75rem;
         font-weight: 600;
@@ -171,15 +238,55 @@
                                 <th style="width: 8%;">Market Cap</th>
                                 <th style="width: 9%;">Analyst Rating</th>
                                 <th style="width: 6%;" class="text-center"># Analysts</th>
-                                <th style="width: 8%;" class="text-end">Avg Move (%)<br><small class="text-muted fw-normal">3yr avg</small></th>
-                                <th style="width: 7%;" class="text-end">Vol (%)<br><small class="text-muted fw-normal">3yr std</small></th>
+                                <th style="width: 8%;" class="text-end">Avg Move (%)<small>3yr avg</small></th>
+                                <th style="width: 7%;" class="text-end">Vol (%)<small>3yr std</small></th>
                                 <th style="width: 15%;">Trade Alert</th>
+                            </tr>
+                            <!-- Filter Row -->
+                            <tr class="filter-row">
+                                <th><input type="text" class="filter-input" id="filterSymbol" placeholder="Filter..."></th>
+                                <th><input type="text" class="filter-input" id="filterCompany" placeholder="Filter..."></th>
+                                <th><input type="date" class="filter-input" id="filterDate"></th>
+                                <th>
+                                    <select class="filter-select" id="filterCallTime">
+                                        <option value="">All</option>
+                                        <option value="장전">장전</option>
+                                        <option value="장후">장후</option>
+                                    </select>
+                                </th>
+                                <th></th>
+                                <th></th>
+                                <th>
+                                    <select class="filter-select" id="filterRating">
+                                        <option value="">All</option>
+                                        <option value="Strong Buy">Strong Buy</option>
+                                        <option value="Buy">Buy</option>
+                                        <option value="Hold">Hold</option>
+                                        <option value="Sell">Sell</option>
+                                    </select>
+                                </th>
+                                <th></th>
+                                <th></th>
+                                <th></th>
+                                <th>
+                                    <select class="filter-select" id="filterAlert">
+                                        <option value="">All</option>
+                                        <option value="alert">With Alert</option>
+                                    </select>
+                                </th>
                             </tr>
                         </thead>
                         <tbody id="earningsTableBody">
                             <!-- Data will be populated here -->
                         </tbody>
                     </table>
+                </div>
+                <!-- Load More Button -->
+                <div id="loadMoreContainer" class="load-more-container" style="display: none;">
+                    <button class="load-more-btn" onclick="loadMoreRows()">
+                        <i class="bi bi-arrow-down-circle me-2"></i>Load More (<span id="remainingCount">0</span> remaining)
+                    </button>
+                </div>
                 </div>
             </div>
 
@@ -316,6 +423,12 @@ function createVIXChart(dates, values) {
     });
 }
 
+// Global state
+let allEarningsData = [];
+let filteredData = [];
+let currentPage = 0;
+const ITEMS_PER_PAGE = 20;
+
 // Load Earnings Events from API
 async function loadEarningsEvents() {
     // Show loading
@@ -328,8 +441,13 @@ async function loadEarningsEvents() {
         const response = await fetch('/api/earnings/calendar?days=7');
         const data = await response.json();
 
+        console.log('API Response:', data); // Debug log
+
         if (data.length > 0) {
-            renderEarningsTable(data);
+            allEarningsData = data;
+            filteredData = data;
+            currentPage = 0;
+            renderEarningsTable();
             document.getElementById('tableContainer').style.display = 'block';
         } else {
             document.getElementById('emptyState').style.display = 'block';
@@ -342,31 +460,90 @@ async function loadEarningsEvents() {
     }
 }
 
-function renderEarningsTable(data) {
+function applyFilters() {
+    const symbolFilter = document.getElementById('filterSymbol').value.toLowerCase();
+    const companyFilter = document.getElementById('filterCompany').value.toLowerCase();
+    const dateFilter = document.getElementById('filterDate').value;
+    const callTimeFilter = document.getElementById('filterCallTime').value;
+    const ratingFilter = document.getElementById('filterRating').value;
+    const alertFilter = document.getElementById('filterAlert').value;
+
+    filteredData = allEarningsData.filter(item => {
+        // Symbol filter
+        if (symbolFilter && !item.Symbol.toLowerCase().includes(symbolFilter)) {
+            return false;
+        }
+
+        // Company filter
+        if (companyFilter && !item.Company.toLowerCase().includes(companyFilter)) {
+            return false;
+        }
+
+        // Date filter
+        if (dateFilter && item.Date !== dateFilter) {
+            return false;
+        }
+
+        // Call Time filter
+        if (callTimeFilter && item.CallTime !== callTimeFilter) {
+            return false;
+        }
+
+        // Rating filter
+        if (ratingFilter) {
+            const ratingText = getRatingText(item.AnalystRating);
+            if (ratingText !== ratingFilter) {
+                return false;
+            }
+        }
+
+        // Alert filter
+        if (alertFilter === 'alert' && (!item.TradeAlert || item.TradeAlert === '-')) {
+            return false;
+        }
+
+        return true;
+    });
+
+    currentPage = 0;
+    renderEarningsTable();
+}
+
+function getRatingText(rating) {
+    if (!rating) return 'N/A';
+    const r = rating.toLowerCase();
+    if (r.includes('strong buy')) return 'Strong Buy';
+    if (r.includes('buy')) return 'Buy';
+    if (r.includes('hold')) return 'Hold';
+    if (r.includes('sell')) return 'Sell';
+    return rating;
+}
+
+function renderEarningsTable() {
     const tbody = document.getElementById('earningsTableBody');
     tbody.innerHTML = '';
 
-    data.forEach(item => {
+    const startIdx = 0;
+    const endIdx = (currentPage + 1) * ITEMS_PER_PAGE;
+    const dataToShow = filteredData.slice(startIdx, endIdx);
+
+    dataToShow.forEach(item => {
         const row = document.createElement('tr');
 
         // Analyst Rating badge
         let ratingBadgeClass = 'bg-secondary';
-        let ratingText = item.AnalystRating || 'N/A';
+        let ratingText = getRatingText(item.AnalystRating);
 
         if (item.AnalystRating) {
             const rating = item.AnalystRating.toLowerCase();
             if (rating.includes('strong buy')) {
                 ratingBadgeClass = 'bg-success';
-                ratingText = 'Strong Buy';
             } else if (rating.includes('buy')) {
                 ratingBadgeClass = 'bg-primary';
-                ratingText = 'Buy';
             } else if (rating.includes('hold')) {
                 ratingBadgeClass = 'bg-warning';
-                ratingText = 'Hold';
             } else if (rating.includes('sell')) {
                 ratingBadgeClass = 'bg-danger';
-                ratingText = 'Sell';
             }
         }
 
@@ -399,6 +576,20 @@ function renderEarningsTable(data) {
 
         tbody.appendChild(row);
     });
+
+    // Update load more button
+    const remaining = filteredData.length - endIdx;
+    if (remaining > 0) {
+        document.getElementById('loadMoreContainer').style.display = 'block';
+        document.getElementById('remainingCount').textContent = remaining;
+    } else {
+        document.getElementById('loadMoreContainer').style.display = 'none';
+    }
+}
+
+function loadMoreRows() {
+    currentPage++;
+    renderEarningsTable();
 }
 
 // Refresh Button
@@ -410,6 +601,14 @@ document.getElementById('refreshBtn').addEventListener('click', () => {
 document.addEventListener('DOMContentLoaded', () => {
     loadVIXData();
     loadEarningsEvents();
+
+    // Add filter event listeners
+    document.getElementById('filterSymbol').addEventListener('input', applyFilters);
+    document.getElementById('filterCompany').addEventListener('input', applyFilters);
+    document.getElementById('filterDate').addEventListener('change', applyFilters);
+    document.getElementById('filterCallTime').addEventListener('change', applyFilters);
+    document.getElementById('filterRating').addEventListener('change', applyFilters);
+    document.getElementById('filterAlert').addEventListener('change', applyFilters);
 });
 </script>
 {% endblock %}
