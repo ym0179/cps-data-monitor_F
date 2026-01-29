@@ -156,7 +156,8 @@ def fetch_analyst_consensus(ticker):
             result['recommendKey'] = info.get('recommendationKey')
             result['analystCount'] = info.get('numberOfAnalystOpinions', 0)
 
-    except Exception:
+    except Exception as e:
+        print(f"[fetch_analyst_consensus] Error for {ticker}: {type(e).__name__}: {str(e)}")
         pass
 
     return result
@@ -192,7 +193,8 @@ def fetch_historical_price(ticker, years=3):
             df.index = pd.to_datetime(df.index).normalize()
             return df
 
-    except Exception:
+    except Exception as e:
+        print(f"[fetch_historical_price] Error for {ticker}: {type(e).__name__}: {str(e)}")
         pass
 
     return pd.DataFrame()
@@ -225,7 +227,8 @@ def fetch_historical_earnings_dates(ticker):
         if earnings_dates is not None and not earnings_dates.empty:
             dates_list = [pd.Timestamp(dt).normalize() for dt in earnings_dates.index]
 
-    except Exception:
+    except Exception as e:
+        print(f"[fetch_historical_earnings_dates] Error for {ticker}: {type(e).__name__}: {str(e)}")
         pass
 
     # Deduplicate and sort
@@ -300,7 +303,8 @@ def calculate_earnings_metrics(ticker, years=3):
 
             result['num_earnings'] = len(returns)
 
-    except Exception:
+    except Exception as e:
+        print(f"[calculate_earnings_metrics] Error for {ticker}: {type(e).__name__}: {str(e)}")
         pass
 
     return result
