@@ -298,6 +298,9 @@ function clearLoading(containerId) {
     }
 }
 
+// 차트 렌더링 타임아웃 ID (경합 조건 방지)
+let chartRenderTimeout = null;
+
 // 스택형 막대 차트 생성 (이미지와 동일한 스타일)
 function createStackedBarChart(containerId, data) {
     const container = document.getElementById(containerId);
@@ -313,51 +316,66 @@ function createStackedBarChart(containerId, data) {
     // 스택 순서: 아래부터 Bing, Other, Yahoo, Google (위로 갈수록 큰 값)
     const engines = ['Bing', 'Other', 'Yahoo', 'Google'].filter(e => data[e]);
 
-    const traces = engines.map(engine => ({
-        x: data.dates,
-        y: data[engine].map(v => v || 0),
-        name: engine,
-        type: 'bar',
-        marker: { color: COLORS[engine] }
-    }));
+    try {
+        const traces = engines.map(engine => ({
+            x: data.dates,
+            y: data[engine].map(v => v || 0),
+            name: engine,
+            type: 'bar',
+            marker: { color: COLORS[engine] }
+        }));
 
-    // x축 tick 간격 계산
-    const dataLength = data.dates.length;
-    let dtick = 6;
-    if (dataLength <= 24) dtick = 3;
-    else if (dataLength <= 48) dtick = 6;
-    else dtick = 12;
+        // x축 tick 간격 계산
+        const dataLength = data.dates.length;
+        let dtick = 6;
+        if (dataLength <= 24) dtick = 3;
+        else if (dataLength <= 48) dtick = 6;
+        else dtick = 12;
 
-    const layout = {
-        barmode: 'stack',
-        margin: { t: 10, b: 80, l: 40, r: 10 },
-        xaxis: {
-            tickangle: -45,
-            tickfont: { size: 9 },
-            dtick: dtick,
-            type: 'category'
-        },
-        yaxis: {
-            title: '%',
-            range: [0, 100],
-            tickformat: '.0f'
-        },
-        legend: {
-            orientation: 'h',
-            y: -0.3,
-            x: 0.5,
-            xanchor: 'center',
-            font: { size: 10 }
-        },
-        showlegend: true
-    };
+        const layout = {
+            barmode: 'stack',
+            margin: { t: 10, b: 80, l: 40, r: 10 },
+            xaxis: {
+                tickangle: -45,
+                tickfont: { size: 9 },
+                dtick: dtick,
+                type: 'category'
+            },
+            yaxis: {
+                title: '%',
+                range: [0, 100],
+                tickformat: '.0f'
+            },
+            legend: {
+                orientation: 'h',
+                y: -0.3,
+                x: 0.5,
+                xanchor: 'center',
+                font: { size: 10 }
+            },
+            showlegend: true
+        };
 
-    Plotly.newPlot(containerId, traces, layout, {responsive: true, displayModeBar: false});
+        Plotly.newPlot(containerId, traces, layout, {responsive: true, displayModeBar: false})
+            .catch(err => {
+                console.error('Plotly render error:', err);
+                container.innerHTML = '<p class="text-danger text-center py-5">차트 렌더링 실패</p>';
+            });
+    } catch (err) {
+        console.error('Chart creation error:', err);
+        container.innerHTML = '<p class="text-danger text-center py-5">차트 생성 오류</p>';
+    }
 }
 
 // 모든 차트와 테이블 렌더링
 function renderAll(data) {
     if (!data) return;
+
+    // 이전 타임아웃 취소 (경합 조건 방지)
+    if (chartRenderTimeout) {
+        clearTimeout(chartRenderTimeout);
+        chartRenderTimeout = null;
+    }
 
     // 먼저 모든 로딩 스피너 제거
     ['chartDesktopMobile', 'chartDesktop', 'chartMobile'].forEach(clearLoading);
@@ -368,10 +386,11 @@ function renderAll(data) {
     createTable('tableMobile', data.mobile, 'Mobile');
 
     // 차트 생성 (약간 지연 후 렌더링하여 DOM 업데이트 보장)
-    setTimeout(() => {
+    chartRenderTimeout = setTimeout(() => {
         createStackedBarChart('chartDesktopMobile', data.desktop_mobile);
         createStackedBarChart('chartDesktop', data.desktop);
         createStackedBarChart('chartMobile', data.mobile);
+        chartRenderTimeout = null;
     }, 50);
 }
 
@@ -450,9 +469,13 @@ document.querySelectorAll('.quick-filter').forEach(btn => {
 document.getElementById('filterFrom').addEventListener('keypress', e => { if (e.key === 'Enter') applyFilter(); });
 document.getElementById('filterTo').addEventListener('keypress', e => { if (e.key === 'Enter') applyFilter(); });
 
-// 데이터 로드 및 렌더링
-fetch('/api/search-engine/all')
+// 데이터 로드 및 렌더링 (30초 타임아웃 적용)
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+fetch('/api/search-engine/all', { signal: controller.signal })
     .then(res => {
+        clearTimeout(timeoutId);
         if (!res.ok) throw new Error('API Error: ' + res.status);
         return res.json();
     })
@@ -468,8 +491,14 @@ fetch('/api/search-engine/all')
         }
     })
     .catch(err => {
+        clearTimeout(timeoutId);
         console.error('Error:', err);
-        const errorMsg = '<p class="text-danger text-center py-3">데이터 로드 실패. 캐시 파일이 없을 수 있습니다.<br><small>관리자에게 update_cache.py 실행을 요청하세요.</small></p>';
+        let errorMsg;
+        if (err.name === 'AbortError') {
+            errorMsg = '<p class="text-danger text-center py-3">데이터 로드 시간 초과 (30초).<br><small>네트워크 상태를 확인하거나 나중에 다시 시도해주세요.</small></p>';
+        } else {
+            errorMsg = '<p class="text-danger text-center py-3">데이터 로드 실패. 캐시 파일이 없을 수 있습니다.<br><small>관리자에게 update_cache.py 실행을 요청하세요.</small></p>';
+        }
         ['tableDesktopMobile', 'tableDesktop', 'tableMobile'].forEach(id => {
             document.getElementById(id).innerHTML = errorMsg;
         });
