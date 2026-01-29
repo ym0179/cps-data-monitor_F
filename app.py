@@ -392,7 +392,7 @@ def calculate_super_stock(df, ref_date=None):
     return pd.DataFrame(results)
 
 @st.cache_data(ttl=86400)
-def fetch_statcounter_data(metric="search_engine", device="desktop+mobile+tablet+console", region="ww", from_year="2019", from_month="01", to_year=None, to_month=None):
+def fetch_statcounter_data(metric="search_engine", device="desktop+mobile+tablet+console", region="ww", from_year="2009", from_month="01", to_year=None, to_month=None):
     """StatCounter 데이터 수집 (CSV Direct)"""
     import requests
     import io
