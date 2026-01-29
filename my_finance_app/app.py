@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 import json
 from bs4 import BeautifulSoup
 import urllib3
+from etf_monitor import TimeETFMonitor, KiwoomETFMonitor
 
 # SSL 경고 무시
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -781,6 +782,124 @@ def api_idio_score():
 
     result = calculate_idio_score_simple(ticker, sector)
     return jsonify(result)
+
+
+# =============================================================================
+# Active ETF API 엔드포인트
+# =============================================================================
+
+# ETF 설정
+ETF_CONFIG = [
+    {
+        'id': 'time_sp500',
+        'name': 'TIME S&P500',
+        'type': 'time',
+        'idx': '5',
+        'description': 'TIME S&P500 ETF'
+    },
+    {
+        'id': 'time_nasdaq100',
+        'name': 'TIME NASDAQ100',
+        'type': 'time',
+        'idx': '2',
+        'description': 'TIME NASDAQ100 ETF'
+    },
+    {
+        'id': 'kiwoom_growth30',
+        'name': 'KOSEF 미국성장기업30',
+        'type': 'kiwoom',
+        'code': '459790',
+        'description': 'KOSEF 미국성장기업30 Active'
+    }
+]
+
+# ETF 모니터 인스턴스 생성
+etf_monitors = {
+    'time_sp500': TimeETFMonitor('5', 'TIME S&P500'),
+    'time_nasdaq100': TimeETFMonitor('2', 'TIME NASDAQ100'),
+    'kiwoom_growth30': KiwoomETFMonitor()
+}
+
+@app.route('/api/etf/list')
+def api_etf_list():
+    """
+    ETF 목록 반환
+    """
+    return jsonify({'etfs': ETF_CONFIG})
+
+@app.route('/api/etf/data/<etf_id>')
+def api_etf_data(etf_id):
+    """
+    특정 ETF의 포트폴리오 데이터 및 리밸런싱 분석
+    Query Parameters:
+    - date: YYYY-MM-DD (default: today)
+
+    Response:
+    {
+        "etf_info": {...},
+        "base_date": "2026-01-30",
+        "prev_date": "2026-01-29",
+        "portfolio_today": [...],
+        "rebalancing": {
+            "new_stocks": [...],
+            "removed_stocks": [...],
+            "increased_stocks": [...],
+            "decreased_stocks": [...]
+        }
+    }
+    """
+    if etf_id not in etf_monitors:
+        return jsonify({'error': 'Invalid ETF ID'}), 404
+
+    # 날짜 파라미터 처리
+    date_str = request.args.get('date')
+    if not date_str:
+        date_str = datetime.now().strftime('%Y-%m-%d')
+
+    try:
+        monitor = etf_monitors[etf_id]
+
+        # 오늘 데이터 가져오기
+        df_today = monitor.load_data(date_str)
+        if df_today is None or df_today.empty:
+            return jsonify({'error': f'No data available for {date_str}'}), 404
+
+        # 이전 영업일 찾기
+        prev_date = monitor.get_previous_business_day(date_str)
+
+        # 리밸런싱 분석
+        rebalancing = None
+        if prev_date:
+            df_prev = monitor.load_data(prev_date)
+            if df_prev is not None and not df_prev.empty:
+                rebalancing = monitor.analyze_rebalancing(df_today, df_prev)
+
+        # ETF 정보
+        etf_info = next((etf for etf in ETF_CONFIG if etf['id'] == etf_id), None)
+
+        # Top 10 Holdings
+        top_holdings = df_today.nlargest(10, '비중')[['종목코드', '종목명', '비중', '평가금액']].to_dict('records')
+
+        response = {
+            'etf_info': etf_info,
+            'base_date': date_str,
+            'prev_date': prev_date,
+            'top_holdings': top_holdings,
+            'portfolio_today': df_today.to_dict('records'),
+            'rebalancing': rebalancing,
+            'summary': {
+                'total_positions': len(df_today),
+                'new_count': len(rebalancing['new_stocks']) if rebalancing else 0,
+                'removed_count': len(rebalancing['removed_stocks']) if rebalancing else 0,
+                'increased_count': len(rebalancing['increased_stocks']) if rebalancing else 0,
+                'decreased_count': len(rebalancing['decreased_stocks']) if rebalancing else 0
+            }
+        }
+
+        return jsonify(response)
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 # =============================================================================

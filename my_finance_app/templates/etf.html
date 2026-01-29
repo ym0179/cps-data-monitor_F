@@ -1,238 +1,363 @@
 {% extends "base.html" %}
 
-{% block title %}Active ETF Analysis - 고객상품전략팀{% endblock %}
+{% block title %}Active ETF - 고객상품전략팀{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tab-button {
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+        cursor: pointer;
+        background: none;
+        border-top: none;
+        border-left: none;
+        border-right: none;
+        color: #717182;
+    }
+
+    .tab-button:hover {
+        color: #030213;
+        background-color: #f3f3f5;
+    }
+
+    .tab-button.active {
+        color: #030213;
+        border-bottom-color: #030213;
+        font-weight: 600;
+    }
+
+    .badge-custom {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .badge-green {
+        background-color: #dcfce7;
+        color: #166534;
+    }
+
+    .badge-red {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+
+    .badge-blue {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+
+    .badge-orange {
+        background-color: #ffedd5;
+        color: #9a3412;
+    }
+
+    .stock-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .stock-table th {
+        text-align: left;
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #717182;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .stock-table td {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .stock-table tbody tr:hover {
+        background-color: #f3f3f5;
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 1.5rem;
+        height: 1.5rem;
+        border: 3px solid rgba(0, 0, 0, 0.1);
+        border-top-color: #030213;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .change-icon {
+        width: 1.25rem;
+        height: 1.25rem;
+        display: inline-block;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid px-3 py-3">
-    <h4 class="mb-4"><i class="bi bi-pie-chart-fill text-success me-2"></i>Active ETF Daily Rebalancing</h4>
-    <p class="text-muted mb-4">TIMEFOLIO 공식 포트폴리오 분석</p>
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Active ETF Monitor</h1>
+        <p class="text-gray-600">실시간 ETF 포트폴리오 리밸런싱 분석</p>
+    </div>
 
-    <!-- ETF 선택 -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <label class="form-label">분류</label>
-            <select class="form-select" id="etfCategory">
-                <option value="해외주식형">해외주식형</option>
-                <option value="국내주식형">국내주식형</option>
-            </select>
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">상품명</label>
-            <select class="form-select" id="etfName">
-            </select>
-        </div>
-        <div class="col-md-4 d-flex align-items-end">
-            <button class="btn btn-primary" id="loadBtn">
-                <i class="bi bi-search me-1"></i>포트폴리오 조회
+    <!-- Date Picker -->
+    <div class="card-custom p-4 mb-6">
+        <div class="flex items-center gap-4">
+            <label for="datePicker" class="text-sm font-medium text-gray-700">기준일</label>
+            <input 
+                type="date" 
+                id="datePicker" 
+                class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                value=""
+            >
+            <button onclick="loadAllETFData()" class="btn-custom btn-custom-default btn-custom-md">
+                <i class="bi bi-arrow-clockwise"></i>
+                조회
             </button>
         </div>
     </div>
 
-    <!-- 결과 영역 -->
-    <div id="resultArea" style="display: none;">
-        <!-- 요약 카드 -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h6 class="text-muted">총 종목 수</h6>
-                        <h3 id="totalCount" class="text-primary">-</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h6 class="text-muted">Top 5 비중</h6>
-                        <h3 id="top5Weight" class="text-success">-</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h6 class="text-muted">최고 비중</h6>
-                        <h3 id="maxWeight" class="text-info">-</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h6 class="text-muted">평균 비중</h6>
-                        <h3 id="avgWeight" class="text-warning">-</h3>
-                    </div>
-                </div>
-            </div>
+    <!-- ETF Tabs -->
+    <div class="card-custom mb-6">
+        <div class="border-b border-gray-200 flex space-x-1 px-4">
+            <button class="tab-button active" data-etf-id="time_sp500">TIME S&P500</button>
+            <button class="tab-button" data-etf-id="time_nasdaq100">TIME NASDAQ100</button>
+            <button class="tab-button" data-etf-id="kiwoom_growth30">KOSEF 미국성장기업30</button>
         </div>
 
-        <!-- 차트 & 테이블 -->
-        <div class="row">
-            <div class="col-md-5">
-                <div class="card">
-                    <div class="card-header">포트폴리오 비중 (Top 10)</div>
-                    <div class="card-body">
-                        <div id="pieChart" style="height: 350px;"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-7">
-                <div class="card">
-                    <div class="card-header">전체 구성종목</div>
-                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                        <table class="table table-sm table-hover" id="portfolioTable">
-                            <thead class="table-light sticky-top">
-                                <tr>
-                                    <th>#</th>
-                                    <th>종목명</th>
-                                    <th class="text-end">비중(%)</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </div>
+        <!-- Tab Content Container -->
+        <div id="etfContent" class="p-6">
+            <div class="flex justify-center items-center py-12">
+                <div class="loading-spinner"></div>
+                <span class="ml-3 text-gray-600">데이터를 불러오는 중...</span>
             </div>
         </div>
-    </div>
-
-    <!-- 로딩 -->
-    <div id="loadingArea" style="display: none;" class="text-center py-5">
-        <div class="spinner-border text-primary" role="status"></div>
-        <p class="mt-2 text-muted">데이터를 불러오는 중...</p>
-    </div>
-
-    <!-- 에러 -->
-    <div id="errorArea" style="display: none;" class="alert alert-danger">
-        데이터를 불러올 수 없습니다. 잠시 후 다시 시도해주세요.
     </div>
 </div>
 
-<!-- Plotly.js -->
-<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-
 <script>
-// ETF 데이터
-const etfData = {
-    "해외주식형": {
-        "글로벌탑픽": "22", "글로벌바이오": "9", "우주테크&방산": "20",
-        "S&P500": "5", "나스닥100": "2", "글로벌AI": "6",
-        "차이나AI": "19", "미국배당다우존스": "18"
-    },
-    "국내주식형": {
-        "K신재생에너지": "16", "K바이오": "13", "Korea플러스배당": "12",
-        "코스피": "11", "코리아밸류업": "15"
-    }
-};
+    let currentETFId = 'time_sp500';
+    let etfData = {};
 
-// 상품명 업데이트
-function updateEtfNames() {
-    const category = document.getElementById('etfCategory').value;
-    const nameSelect = document.getElementById('etfName');
-    nameSelect.innerHTML = '';
+    // 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+        // 오늘 날짜로 설정
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('datePicker').value = today;
 
-    for (const name in etfData[category]) {
-        const option = document.createElement('option');
-        option.value = etfData[category][name];
-        option.textContent = name;
-        nameSelect.appendChild(option);
-    }
-}
-
-// 포트폴리오 로드
-function loadPortfolio() {
-    const idx = document.getElementById('etfName').value;
-
-    document.getElementById('loadingArea').style.display = 'block';
-    document.getElementById('resultArea').style.display = 'none';
-    document.getElementById('errorArea').style.display = 'none';
-
-    fetch(`/api/etf/portfolio/${idx}`)
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById('loadingArea').style.display = 'none';
-
-            if (data.error) {
-                document.getElementById('errorArea').style.display = 'block';
-                return;
-            }
-
-            document.getElementById('resultArea').style.display = 'block';
-            renderPortfolio(data.data);
-        })
-        .catch(err => {
-            document.getElementById('loadingArea').style.display = 'none';
-            document.getElementById('errorArea').style.display = 'block';
+        // Tab 클릭 이벤트
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentETFId = this.getAttribute('data-etf-id');
+                renderETFContent(currentETFId);
+            });
         });
-}
 
-// 렌더링
-function renderPortfolio(records) {
-    // 비중 숫자로 변환 & 정렬
-    records.forEach(r => {
-        r.weight = parseFloat(r['비중']) || 0;
+        // 초기 데이터 로드
+        loadAllETFData();
     });
-    records.sort((a, b) => b.weight - a.weight);
 
-    // 요약 통계
-    const total = records.length;
-    const weights = records.map(r => r.weight);
-    const top5 = weights.slice(0, 5).reduce((a, b) => a + b, 0);
-    const max = Math.max(...weights);
-    const avg = weights.reduce((a, b) => a + b, 0) / total;
+    // 모든 ETF 데이터 로드
+    async function loadAllETFData() {
+        const date = document.getElementById('datePicker').value;
+        const etfIds = ['time_sp500', 'time_nasdaq100', 'kiwoom_growth30'];
 
-    document.getElementById('totalCount').textContent = total + '개';
-    document.getElementById('top5Weight').textContent = top5.toFixed(1) + '%';
-    document.getElementById('maxWeight').textContent = max.toFixed(1) + '%';
-    document.getElementById('avgWeight').textContent = avg.toFixed(1) + '%';
-
-    // 테이블
-    const tbody = document.querySelector('#portfolioTable tbody');
-    tbody.innerHTML = '';
-    records.forEach((r, i) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${i + 1}</td>
-            <td>${r['종목명'] || '-'}</td>
-            <td class="text-end">${r.weight.toFixed(2)}%</td>
+        // 로딩 표시
+        document.getElementById('etfContent').innerHTML = `
+            <div class="flex justify-center items-center py-12">
+                <div class="loading-spinner"></div>
+                <span class="ml-3 text-gray-600">데이터를 불러오는 중...</span>
+            </div>
         `;
-        tbody.appendChild(tr);
-    });
 
-    // 파이 차트 (Top 10 + 기타)
-    const top10 = records.slice(0, 10);
-    const othersWeight = records.slice(10).reduce((a, r) => a + r.weight, 0);
+        try {
+            // 병렬로 모든 ETF 데이터 로드
+            const promises = etfIds.map(id => 
+                fetch(`/api/etf/data/${id}?date=${date}`)
+                    .then(res => res.json())
+            );
 
-    const labels = top10.map(r => r['종목명'] || 'Unknown');
-    const values = top10.map(r => r.weight);
+            const results = await Promise.all(promises);
+            
+            etfIds.forEach((id, idx) => {
+                etfData[id] = results[idx];
+            });
 
-    if (othersWeight > 0) {
-        labels.push('기타');
-        values.push(othersWeight);
+            // 현재 선택된 ETF 렌더링
+            renderETFContent(currentETFId);
+
+        } catch (error) {
+            console.error('Error loading ETF data:', error);
+            document.getElementById('etfContent').innerHTML = `
+                <div class="text-center py-12">
+                    <p class="text-red-600">데이터 로드 중 오류가 발생했습니다.</p>
+                    <p class="text-sm text-gray-500 mt-2">${error.message}</p>
+                </div>
+            `;
+        }
     }
 
-    const pieData = [{
-        labels: labels,
-        values: values,
-        type: 'pie',
-        hole: 0.4,
-        textinfo: 'label+percent',
-        textposition: 'inside'
-    }];
+    // ETF 콘텐츠 렌더링
+    function renderETFContent(etfId) {
+        const data = etfData[etfId];
+        
+        if (!data || data.error) {
+            document.getElementById('etfContent').innerHTML = `
+                <div class="text-center py-12">
+                    <p class="text-gray-600">데이터가 없습니다.</p>
+                    <p class="text-sm text-gray-500 mt-2">${data?.error || '다른 날짜를 선택해주세요.'}</p>
+                </div>
+            `;
+            return;
+        }
 
-    const layout = {
-        showlegend: false,
-        margin: { t: 20, b: 20, l: 20, r: 20 }
-    };
+        const summary = data.summary || {};
+        const rebalancing = data.rebalancing || {};
 
-    Plotly.newPlot('pieChart', pieData, layout, {responsive: true});
-}
+        const html = `
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="card-custom p-4">
+                    <div class="text-sm text-gray-600 mb-1">총 보유종목</div>
+                    <div class="text-2xl font-bold text-gray-900">${summary.total_positions || 0}</div>
+                </div>
+                <div class="card-custom p-4">
+                    <div class="text-sm text-gray-600 mb-1">신규 편입</div>
+                    <div class="text-2xl font-bold text-green-600">${summary.new_count || 0}</div>
+                </div>
+                <div class="card-custom p-4">
+                    <div class="text-sm text-gray-600 mb-1">편출</div>
+                    <div class="text-2xl font-bold text-red-600">${summary.removed_count || 0}</div>
+                </div>
+                <div class="card-custom p-4">
+                    <div class="text-sm text-gray-600 mb-1">비중변화</div>
+                    <div class="text-2xl font-bold text-blue-600">${(summary.increased_count || 0) + (summary.decreased_count || 0)}</div>
+                </div>
+            </div>
 
-// Event Listeners
-document.getElementById('etfCategory').addEventListener('change', updateEtfNames);
-document.getElementById('loadBtn').addEventListener('click', loadPortfolio);
+            <!-- Daily Rebalancing Summary -->
+            <div class="card-custom p-6 mb-6">
+                <h3 class="text-lg font-semibold mb-4">Daily Rebalancing Summary</h3>
+                <div class="text-sm text-gray-600 mb-4">
+                    Base Date: ${data.base_date || 'N/A'} | Previous Date: ${data.prev_date || 'N/A'}
+                </div>
 
-// 초기화
-updateEtfNames();
+                <div class="space-y-4">
+                    ${renderRebalancingSection('신규 편입', rebalancing.new_stocks, 'green', 'plus-circle')}
+                    ${renderRebalancingSection('편출', rebalancing.removed_stocks, 'red', 'dash-circle')}
+                    ${renderRebalancingSection('비중 확대', rebalancing.increased_stocks, 'blue', 'arrow-up-circle')}
+                    ${renderRebalancingSection('비중 축소', rebalancing.decreased_stocks, 'orange', 'arrow-down-circle')}
+                </div>
+            </div>
+
+            <!-- AI Analysis (Empty) -->
+            <div class="card-custom p-6 mb-6">
+                <h3 class="text-lg font-semibold mb-4">
+                    <i class="bi bi-stars mr-2"></i>AI Analysis
+                </h3>
+                <div class="text-center py-8 text-gray-400">
+                    <i class="bi bi-hourglass-split text-3xl mb-2"></i>
+                    <p>AI 분석 기능은 곧 제공될 예정입니다.</p>
+                </div>
+            </div>
+
+            <!-- Top 10 Holdings -->
+            <div class="card-custom p-6">
+                <h3 class="text-lg font-semibold mb-4">Top 10 Holdings</h3>
+                <div class="overflow-x-auto">
+                    <table class="stock-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Ticker</th>
+                                <th>Name</th>
+                                <th class="text-right">Weight (%)</th>
+                                <th class="text-right">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${renderTopHoldings(data.top_holdings || [])}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('etfContent').innerHTML = html;
+    }
+
+    // 리밸런싱 섹션 렌더링
+    function renderRebalancingSection(title, stocks, color, icon) {
+        if (!stocks || stocks.length === 0) {
+            return `
+                <div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="badge-custom badge-${color}">
+                            <i class="bi bi-${icon}"></i>
+                            ${title}
+                        </span>
+                        <span class="text-sm text-gray-500">0건</span>
+                    </div>
+                    <p class="text-sm text-gray-400 ml-8">변동 없음</p>
+                </div>
+            `;
+        }
+
+        const stockList = stocks.slice(0, 5).map(s => 
+            `<span class="text-sm text-gray-700">${s.종목명} (${s.종목코드})</span>`
+        ).join(', ');
+
+        const moreText = stocks.length > 5 ? ` 외 ${stocks.length - 5}건` : '';
+
+        return `
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="badge-custom badge-${color}">
+                        <i class="bi bi-${icon}"></i>
+                        ${title}
+                    </span>
+                    <span class="text-sm text-gray-500">${stocks.length}건</span>
+                </div>
+                <p class="text-sm ml-8">${stockList}${moreText}</p>
+            </div>
+        `;
+    }
+
+    // Top Holdings 렌더링
+    function renderTopHoldings(holdings) {
+        if (!holdings || holdings.length === 0) {
+            return '<tr><td colspan="5" class="text-center text-gray-400 py-8">데이터가 없습니다.</td></tr>';
+        }
+
+        return holdings.map((stock, idx) => `
+            <tr>
+                <td class="font-semibold">${idx + 1}</td>
+                <td class="font-mono text-sm">${stock.종목코드}</td>
+                <td>${stock.종목명}</td>
+                <td class="text-right font-semibold">${stock.비중.toFixed(2)}%</td>
+                <td class="text-right">${formatNumber(stock.평가금액)}</td>
+            </tr>
+        `).join('');
+    }
+
+    // 숫자 포맷팅
+    function formatNumber(num) {
+        if (!num) return '-';
+        return new Intl.NumberFormat('ko-KR').format(Math.round(num));
+    }
 </script>
 {% endblock %}
