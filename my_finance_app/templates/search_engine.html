@@ -353,10 +353,21 @@ function createStackedBarChart(containerId, data) {
                 xanchor: 'center',
                 font: { size: 10 }
             },
-            showlegend: true
+            showlegend: true,
+            hovermode: 'x unified'
         };
 
-        Plotly.newPlot(containerId, traces, layout, {responsive: true, displayModeBar: false})
+        const config = {
+            responsive: true,
+            displayModeBar: false
+        };
+
+        // 각 trace에 hovertemplate 추가 (소수점 2자리)
+        traces.forEach(trace => {
+            trace.hovertemplate = '%{fullData.name}<br>%{x}<br>%{y:.2f}%<extra></extra>';
+        });
+
+        Plotly.newPlot(containerId, traces, layout, config)
             .catch(err => {
                 console.error('Plotly render error:', err);
                 container.innerHTML = '<p class="text-danger text-center py-5">차트 렌더링 실패</p>';
