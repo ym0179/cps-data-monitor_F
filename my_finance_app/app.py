@@ -658,68 +658,7 @@ def api_os_rivalry_combined():
 
     return jsonify(data)
 
-@app.route('/api/etf/list')
-def api_etf_list():
-    """
-    ETF 목록 API
-
-    Endpoint: GET /api/etf/list
-
-    Response:
-    {
-        "해외주식형": {
-            "글로벌탑픽": "22",
-            "S&P500": "5",
-            ...
-        },
-        "국내주식형": {
-            "K바이오": "13",
-            ...
-        }
-    }
-    """
-    etf_categories = {
-        "해외주식형": {
-            "글로벌탑픽": "22", "글로벌바이오": "9", "우주테크&방산": "20",
-            "S&P500": "5", "나스닥100": "2", "글로벌AI": "6",
-            "차이나AI": "19", "미국배당다우존스": "18"
-        },
-        "국내주식형": {
-            "K신재생에너지": "16", "K바이오": "13", "Korea플러스배당": "12",
-            "코스피": "11", "코리아밸류업": "15"
-        }
-    }
-    return jsonify(etf_categories)
-
-@app.route('/api/etf/portfolio/<idx>')
-def api_etf_portfolio(idx):
-    """
-    ETF 포트폴리오 데이터 API
-
-    Endpoint: GET /api/etf/portfolio/{idx}
-
-    Parameters:
-    - idx: ETF ID (예: "22"=글로벌탑픽)
-
-    Response:
-    {
-        "data": [
-            {"종목코드": "NVDA US EQUITY", "종목명": "NVIDIA CORP", "수량": 1000, "비중": 8.5},
-            ...
-        ],
-        "total": 25
-    }
-    """
-    df = fetch_etf_portfolio(idx)
-
-    if df.empty:
-        return jsonify({'error': 'No data available'}), 404
-
-    records = df.to_dict('records')
-    return jsonify({
-        'data': records,
-        'total': len(records)
-    })
+# Old ETF endpoints removed - replaced with new Active ETF monitoring system below
 
 @app.route('/api/vix')
 def api_vix():
