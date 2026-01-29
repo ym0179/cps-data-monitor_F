@@ -844,44 +844,49 @@ def api_search_engine_download():
 def api_os_rivalry_download():
     """
     OS Market Share 데이터 Excel 다운로드 API
+    3개 시트 (Mobile, Tablet, Mobile+Tablet) 포함
     """
-    device = request.args.get('device', 'mobile')
     start_date = request.args.get('start_date', '2020-01')
     end_date = request.args.get('end_date', datetime.now().strftime('%Y-%m'))
 
     output = io.BytesIO()
 
     try:
-        # 2019년부터 데이터 가져오기
-        df = fetch_statcounter_data(metric="os", device=device, from_year="2019")
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            # 3개 디바이스 각각 시트로 추가
+            for device_key, sheet_name in [
+                ('mobile', 'Mobile'),
+                ('tablet', 'Tablet'),
+                ('mobile+tablet', 'Mobile+Tablet')
+            ]:
+                # 2019년부터 데이터 가져오기
+                df = fetch_statcounter_data(metric="os", device=device_key, from_year="2019")
 
-        if df.empty:
-            # 빈 엑셀 파일 반환
-            with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                pd.DataFrame({'Error': ['No data available']}).to_excel(writer, sheet_name='Data', index=False)
-        else:
-            df_processed = process_os_data(df)
-            df_processed = df_processed.sort_index()
+                if not df.empty:
+                    df_processed = process_os_data(df)
+                    df_processed = df_processed.sort_index()
 
-            # 날짜 필터링
-            if start_date and end_date:
-                df_processed = df_processed[
-                    (df_processed.index >= start_date) &
-                    (df_processed.index <= end_date)
-                ]
+                    # 날짜 필터링
+                    if start_date and end_date:
+                        df_processed = df_processed[
+                            (df_processed.index >= start_date) &
+                            (df_processed.index <= end_date)
+                        ]
 
-            df_export = df_processed.reset_index()
-            df_export.columns = ['Date'] + list(df_export.columns[1:])
+                    df_export = df_processed.reset_index()
+                    df_export.columns = ['Date'] + list(df_export.columns[1:])
 
-            with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                df_export.to_excel(writer, sheet_name=f'{device.capitalize()}', index=False)
+                    df_export.to_excel(writer, sheet_name=sheet_name, index=False)
+                else:
+                    # 빈 데이터
+                    pd.DataFrame({'Error': ['No data available']}).to_excel(writer, sheet_name=sheet_name, index=False)
 
         output.seek(0)
 
         return Response(
             output,
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            headers={'Content-Disposition': f'attachment; filename=os_market_share_{device}.xlsx'}
+            headers={'Content-Disposition': 'attachment; filename=os_market_share.xlsx'}
         )
     except Exception as e:
         print(f"Excel download error: {e}")
