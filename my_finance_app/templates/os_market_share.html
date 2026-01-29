@@ -210,7 +210,7 @@ function loadAllData() {
     Promise.all([
         fetch('/api/os-rivalry?device=mobile').then(res => res.json()),
         fetch('/api/os-rivalry?device=tablet').then(res => res.json()),
-        fetch('/api/os-rivalry?device=mobile+tablet').then(res => res.json())
+        fetch('/api/os-rivalry?device=' + encodeURIComponent('mobile+tablet')).then(res => res.json())
     ]).then(([mobile, tablet, combined]) => {
         rawDataMobile = mobile;
         rawDataTablet = tablet;
