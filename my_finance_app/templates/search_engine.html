@@ -46,11 +46,17 @@
         margin-bottom: 0;
     }
     .chart-container {
-        height: 350px;
+        height: 400px;
     }
     .table-scroll {
         max-height: 200px;
         overflow-y: auto;
+    }
+    .filter-section {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
     }
 </style>
 {% endblock %}
@@ -62,7 +68,7 @@
         <div>
             <h4 class="mb-1"><i class="bi bi-search text-success me-2"></i>Search Engine M/S</h4>
             <p class="text-muted mb-0">
-                <small>Data Source: <a href="https://gs.statcounter.com/search-engine-market-share" target="_blank">StatCounter Global Stats</a></small>
+                <small>Data Source: <a href="https://gs.statcounter.com/search-engine-market-share" target="_blank">StatCounter Global Stats</a> (Jan 2009 ~ Present)</small>
             </p>
         </div>
         <div>
@@ -75,39 +81,45 @@
         </div>
     </div>
 
-    <!-- 데이터 테이블 섹션 -->
-    <div class="card mb-4">
-        <div class="section-title">Search Engine M/S</div>
-        <div class="card-body p-2">
-            <!-- Desktop+Mobile 테이블 -->
-            <div class="mb-3">
-                <h6 class="text-muted mb-2">Desktop + Mobile</h6>
-                <div class="data-table" id="tableDesktopMobile">
-                    <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Loading...</div>
-                </div>
+    <!-- 날짜 필터 섹션 -->
+    <div class="filter-section">
+        <div class="row align-items-center">
+            <div class="col-auto">
+                <label class="form-label mb-0 fw-bold"><i class="bi bi-calendar-range me-1"></i>기간 선택:</label>
             </div>
-
-            <!-- Desktop 테이블 -->
-            <div class="mb-3">
-                <h6 class="text-muted mb-2">Desktop</h6>
-                <div class="data-table" id="tableDesktop">
-                    <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Loading...</div>
-                </div>
+            <div class="col-auto">
+                <select id="filterFrom" class="form-select form-select-sm" style="width: 140px;">
+                </select>
             </div>
-
-            <!-- Mobile 테이블 -->
-            <div class="mb-3">
-                <h6 class="text-muted mb-2">Mobile</h6>
-                <div class="data-table" id="tableMobile">
-                    <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Loading...</div>
+            <div class="col-auto">
+                <span class="text-muted">~</span>
+            </div>
+            <div class="col-auto">
+                <select id="filterTo" class="form-select form-select-sm" style="width: 140px;">
+                </select>
+            </div>
+            <div class="col-auto">
+                <button id="btnApplyFilter" class="btn btn-primary btn-sm">
+                    <i class="bi bi-funnel me-1"></i>적용
+                </button>
+                <button id="btnResetFilter" class="btn btn-outline-secondary btn-sm ms-1">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>전체보기
+                </button>
+            </div>
+            <div class="col-auto ms-3">
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-primary quick-filter" data-months="12">1Y</button>
+                    <button type="button" class="btn btn-outline-primary quick-filter" data-months="36">3Y</button>
+                    <button type="button" class="btn btn-outline-primary quick-filter" data-months="60">5Y</button>
+                    <button type="button" class="btn btn-outline-primary quick-filter active" data-months="0">All</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 차트 섹션 -->
-    <div class="row g-3">
-        <div class="col-md-6 col-lg-3">
+    <!-- 차트 섹션 (위에 배치) -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
             <div class="card h-100">
                 <div class="card-header py-2">
                     <small class="fw-bold">Search Engine M/S (%, Desktop+Mobile)</small>
@@ -119,7 +131,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-6 col-lg-3">
+        <div class="col-md-4">
             <div class="card h-100">
                 <div class="card-header py-2">
                     <small class="fw-bold">Search Engine M/S (%, Desktop)</small>
@@ -131,7 +143,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-6 col-lg-3">
+        <div class="col-md-4">
             <div class="card h-100">
                 <div class="card-header py-2">
                     <small class="fw-bold">Search Engine M/S (%, Mobile)</small>
@@ -143,15 +155,33 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-6 col-lg-3">
-            <div class="card h-100">
-                <div class="card-header py-2">
-                    <small class="fw-bold">Google Search Ads Rev. Mix (%)</small>
+    </div>
+
+    <!-- 데이터 테이블 섹션 (아래에 배치) -->
+    <div class="card">
+        <div class="section-title">Search Engine M/S Data Table</div>
+        <div class="card-body p-2">
+            <!-- Desktop+Mobile 테이블 -->
+            <div class="mb-3">
+                <h6 class="text-muted mb-2"><i class="bi bi-display me-1"></i>Desktop + Mobile</h6>
+                <div class="data-table" id="tableDesktopMobile">
+                    <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Loading...</div>
                 </div>
-                <div class="card-body p-2">
-                    <div id="chartRevMix" class="chart-container">
-                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
-                    </div>
+            </div>
+
+            <!-- Desktop 테이블 -->
+            <div class="mb-3">
+                <h6 class="text-muted mb-2"><i class="bi bi-pc-display me-1"></i>Desktop</h6>
+                <div class="data-table" id="tableDesktop">
+                    <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Loading...</div>
+                </div>
+            </div>
+
+            <!-- Mobile 테이블 -->
+            <div class="mb-3">
+                <h6 class="text-muted mb-2"><i class="bi bi-phone me-1"></i>Mobile</h6>
+                <div class="data-table" id="tableMobile">
+                    <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Loading...</div>
                 </div>
             </div>
         </div>
@@ -162,16 +192,17 @@
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 
 <script>
-// 색상 설정
+// 색상 설정 (첨부 이미지 참고)
 const COLORS = {
-    'Google': '#34a853',
-    'Yahoo': '#6001d2',
-    'Other': '#999999',
-    'Bing': '#f25022',
-    'Baidu': '#2932e1',
-    'YANDEX': '#ff0000',
-    'DuckDuckGo': '#de5833'
+    'Google': '#4285F4',   // Google Blue
+    'Yahoo': '#6001d2',    // Yahoo Purple
+    'Other': '#999999',    // Gray
+    'Bing': '#f25022'      // Bing Red/Orange
 };
+
+// 전역 데이터 저장
+let globalData = null;
+let filteredData = null;
 
 // 행 색상 클래스 매핑
 function getRowClass(name) {
@@ -180,6 +211,51 @@ function getRowClass(name) {
     if (name.includes('Bing')) return 'bg-bing';
     if (name.includes('Other')) return 'bg-other';
     return '';
+}
+
+// 날짜 필터 옵션 생성
+function populateDateFilters(dates) {
+    const fromSelect = document.getElementById('filterFrom');
+    const toSelect = document.getElementById('filterTo');
+
+    fromSelect.innerHTML = '';
+    toSelect.innerHTML = '';
+
+    dates.forEach((d, i) => {
+        const optionFrom = document.createElement('option');
+        optionFrom.value = d;
+        optionFrom.text = d;
+        if (i === 0) optionFrom.selected = true;
+        fromSelect.appendChild(optionFrom);
+
+        const optionTo = document.createElement('option');
+        optionTo.value = d;
+        optionTo.text = d;
+        if (i === dates.length - 1) optionTo.selected = true;
+        toSelect.appendChild(optionTo);
+    });
+}
+
+// 데이터 필터링
+function filterDataByDateRange(data, fromDate, toDate) {
+    if (!data || !data.dates) return data;
+
+    const fromIdx = data.dates.indexOf(fromDate);
+    const toIdx = data.dates.indexOf(toDate);
+
+    if (fromIdx === -1 || toIdx === -1 || fromIdx > toIdx) return data;
+
+    const filtered = {
+        dates: data.dates.slice(fromIdx, toIdx + 1)
+    };
+
+    ['Google', 'Yahoo', 'Other', 'Bing'].forEach(engine => {
+        if (data[engine]) {
+            filtered[engine] = data[engine].slice(fromIdx, toIdx + 1);
+        }
+    });
+
+    return filtered;
 }
 
 // 테이블 생성 함수
@@ -196,9 +272,10 @@ function createTable(containerId, data, suffix) {
 
     let html = '<div style="overflow-x:auto;"><table><thead><tr><th></th>';
 
-    // 최근 36개월 데이터만 표시
-    const recentDates = dates.slice(-36);
-    const startIdx = dates.length - 36;
+    // 최근 36개월 데이터만 테이블에 표시
+    const displayCount = Math.min(36, dates.length);
+    const recentDates = dates.slice(-displayCount);
+    const startIdx = dates.length - displayCount;
 
     recentDates.forEach(d => {
         html += `<th>${d}</th>`;
@@ -221,7 +298,7 @@ function createTable(containerId, data, suffix) {
     container.innerHTML = html;
 }
 
-// 스택형 바 차트 생성 함수
+// 스택형 바 차트 생성 함수 (개선된 x축)
 function createStackedBarChart(containerId, data, title) {
     const container = document.getElementById(containerId);
     if (!data || !data.dates || data.dates.length === 0) {
@@ -229,79 +306,35 @@ function createStackedBarChart(containerId, data, title) {
         return;
     }
 
-    // 주요 검색엔진만 사용
-    const engines = ['Google', 'Yahoo', 'Other', 'Bing'].filter(e => data[e]);
-
-    // 최근 60개월 데이터
-    const recentDates = data.dates.slice(-60);
-    const startIdx = Math.max(0, data.dates.length - 60);
+    // 주요 검색엔진만 사용 (순서: Google, Yahoo, Other, Bing - 스택 순서)
+    const engines = ['Bing', 'Other', 'Yahoo', 'Google'].filter(e => data[e]);
 
     const traces = engines.map(engine => ({
-        x: recentDates,
-        y: data[engine].slice(startIdx).map(v => v || 0),
+        x: data.dates,
+        y: data[engine].map(v => v || 0),
         name: engine,
         type: 'bar',
         marker: { color: COLORS[engine] || '#888' }
     }));
 
+    // x축 tick 간격 계산 (데이터 개수에 따라 동적 조정)
+    const dataLength = data.dates.length;
+    let dtick = 12; // 기본 12개월(1년) 간격
+    if (dataLength <= 24) dtick = 3;      // 2년 이하면 3개월 간격
+    else if (dataLength <= 60) dtick = 6; // 5년 이하면 6개월 간격
+    else if (dataLength <= 120) dtick = 12; // 10년 이하면 12개월 간격
+    else dtick = 24; // 그 이상이면 24개월 간격
+
     const layout = {
         barmode: 'stack',
-        margin: { t: 10, b: 60, l: 40, r: 10 },
+        margin: { t: 10, b: 80, l: 40, r: 10 },
         xaxis: {
             tickangle: -45,
-            tickfont: { size: 8 },
-            dtick: 6  // 6개월 간격으로 표시
+            tickfont: { size: 9 },
+            dtick: dtick,
+            tickformat: '%Y-%m',
+            type: 'category'
         },
-        yaxis: {
-            title: '%',
-            range: [0, 100],
-            tickformat: '.0f'
-        },
-        legend: {
-            orientation: 'h',
-            y: -0.3,
-            font: { size: 9 }
-        },
-        showlegend: true
-    };
-
-    Plotly.newPlot(containerId, traces, layout, {responsive: true, displayModeBar: false});
-}
-
-// Google Ads Revenue Mix 차트 (시뮬레이션 데이터)
-function createRevMixChart() {
-    // 연도별 데이터 (실제로는 별도 데이터소스 필요)
-    const years = ['2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024', '2025'];
-    const mobileData = [53, 57, 61, 63, 67, 68, 69, 70, 70];
-    const desktopData = years.map((_, i) => 100 - mobileData[i]);
-
-    const traces = [
-        {
-            x: years,
-            y: mobileData,
-            name: 'Mobile Search (% of search rev.)',
-            type: 'bar',
-            marker: { color: '#34a853' },
-            text: mobileData.map(v => v + '%'),
-            textposition: 'inside',
-            textfont: { color: 'white', size: 10 }
-        },
-        {
-            x: years,
-            y: desktopData,
-            name: 'Desktop Search (% of search rev.)',
-            type: 'bar',
-            marker: { color: '#999' },
-            text: desktopData.map(v => v + '%'),
-            textposition: 'inside',
-            textfont: { color: 'white', size: 10 }
-        }
-    ];
-
-    const layout = {
-        barmode: 'stack',
-        margin: { t: 10, b: 40, l: 40, r: 10 },
-        xaxis: { tickfont: { size: 10 } },
         yaxis: {
             title: '%',
             range: [0, 100],
@@ -310,35 +343,121 @@ function createRevMixChart() {
         legend: {
             orientation: 'h',
             y: -0.25,
-            font: { size: 8 }
+            x: 0.5,
+            xanchor: 'center',
+            font: { size: 10 }
         },
         showlegend: true
     };
 
-    Plotly.newPlot('chartRevMix', traces, layout, {responsive: true, displayModeBar: false});
+    Plotly.newPlot(containerId, traces, layout, {responsive: true, displayModeBar: false});
 }
+
+// 모든 차트와 테이블 렌더링
+function renderAll(data) {
+    if (!data) return;
+
+    // 테이블 생성
+    createTable('tableDesktopMobile', data.desktop_mobile, 'Desktop+Mobile');
+    createTable('tableDesktop', data.desktop, 'Desktop');
+    createTable('tableMobile', data.mobile, 'Mobile');
+
+    // 차트 생성
+    createStackedBarChart('chartDesktopMobile', data.desktop_mobile);
+    createStackedBarChart('chartDesktop', data.desktop);
+    createStackedBarChart('chartMobile', data.mobile);
+}
+
+// 필터 적용
+function applyFilter() {
+    const fromDate = document.getElementById('filterFrom').value;
+    const toDate = document.getElementById('filterTo').value;
+
+    if (!globalData) return;
+
+    filteredData = {
+        desktop_mobile: filterDataByDateRange(globalData.desktop_mobile, fromDate, toDate),
+        desktop: filterDataByDateRange(globalData.desktop, fromDate, toDate),
+        mobile: filterDataByDateRange(globalData.mobile, fromDate, toDate)
+    };
+
+    renderAll(filteredData);
+}
+
+// 필터 리셋
+function resetFilter() {
+    if (!globalData) return;
+
+    // 날짜 선택기 리셋
+    const dates = globalData.desktop_mobile.dates;
+    document.getElementById('filterFrom').value = dates[0];
+    document.getElementById('filterTo').value = dates[dates.length - 1];
+
+    // Quick filter 버튼 리셋
+    document.querySelectorAll('.quick-filter').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.months === '0') btn.classList.add('active');
+    });
+
+    renderAll(globalData);
+}
+
+// Quick filter 적용
+function applyQuickFilter(months) {
+    if (!globalData || !globalData.desktop_mobile.dates) return;
+
+    const dates = globalData.desktop_mobile.dates;
+    const toDate = dates[dates.length - 1];
+
+    let fromDate;
+    if (months === 0) {
+        fromDate = dates[0]; // All data
+    } else {
+        const fromIdx = Math.max(0, dates.length - months);
+        fromDate = dates[fromIdx];
+    }
+
+    document.getElementById('filterFrom').value = fromDate;
+    document.getElementById('filterTo').value = toDate;
+
+    applyFilter();
+}
+
+// 이벤트 리스너 설정
+document.getElementById('btnApplyFilter').addEventListener('click', applyFilter);
+document.getElementById('btnResetFilter').addEventListener('click', resetFilter);
+
+document.querySelectorAll('.quick-filter').forEach(btn => {
+    btn.addEventListener('click', function() {
+        // 활성 상태 토글
+        document.querySelectorAll('.quick-filter').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+
+        const months = parseInt(this.dataset.months);
+        applyQuickFilter(months);
+    });
+});
 
 // 데이터 로드 및 렌더링
 fetch('/api/search-engine/all')
     .then(res => res.json())
     .then(data => {
-        // 테이블 생성
-        createTable('tableDesktopMobile', data.desktop_mobile, 'Desktop+Mobile');
-        createTable('tableDesktop', data.desktop, 'Desktop');
-        createTable('tableMobile', data.mobile, 'Mobile');
+        globalData = data;
 
-        // 차트 생성
-        createStackedBarChart('chartDesktopMobile', data.desktop_mobile);
-        createStackedBarChart('chartDesktop', data.desktop);
-        createStackedBarChart('chartMobile', data.mobile);
-        createRevMixChart();
+        // 날짜 필터 옵션 생성
+        if (data.desktop_mobile && data.desktop_mobile.dates) {
+            populateDateFilters(data.desktop_mobile.dates);
+        }
+
+        // 초기 렌더링
+        renderAll(data);
     })
     .catch(err => {
         console.error('Error:', err);
         ['tableDesktopMobile', 'tableDesktop', 'tableMobile'].forEach(id => {
             document.getElementById(id).innerHTML = '<p class="text-danger text-center py-3">Failed to load data</p>';
         });
-        ['chartDesktopMobile', 'chartDesktop', 'chartMobile', 'chartRevMix'].forEach(id => {
+        ['chartDesktopMobile', 'chartDesktop', 'chartMobile'].forEach(id => {
             document.getElementById(id).innerHTML = '<p class="text-danger text-center py-5">Failed to load chart</p>';
         });
     });

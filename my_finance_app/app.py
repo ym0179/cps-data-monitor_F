@@ -49,7 +49,7 @@ app.config['SECRET_KEY'] = 'cps-strategy-team-2026'
 #     2024-01, 65.12, 18.45, 5.23, 2.89, 8.31
 # =============================================================================
 
-def fetch_statcounter_data(metric="browser", device="desktop", from_year="2019", from_month="01"):
+def fetch_statcounter_data(metric="browser", device="desktop", from_year="2009", from_month="01"):
     """
     StatCounter에서 시장점유율 데이터 수집
 
@@ -610,7 +610,7 @@ def api_search_engine_all():
     result = {}
 
     for device_key, device_val in [('desktop_mobile', 'desktop-mobile'), ('desktop', 'desktop'), ('mobile', 'mobile')]:
-        df = fetch_statcounter_data(metric="search_engine", device=device_val, from_year="2019")
+        df = fetch_statcounter_data(metric="search_engine", device=device_val, from_year="2009")
         if not df.empty:
             # NaN을 0으로 대체하지 않고 실제 값만 사용
             df = df.dropna(axis=1, how='all')  # 전체가 NaN인 컬럼 제거
@@ -641,7 +641,7 @@ def api_search_engine_download():
             ('desktop', 'desktop', 'Desktop'),
             ('mobile', 'mobile', 'Mobile')
         ]:
-            df = fetch_statcounter_data(metric="search_engine", device=device_val, from_year="2019")
+            df = fetch_statcounter_data(metric="search_engine", device=device_val, from_year="2009")
             if not df.empty:
                 # 인덱스(날짜)를 컬럼으로 변환
                 df_export = df.reset_index()
