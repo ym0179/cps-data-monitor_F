@@ -588,14 +588,53 @@ def api_os_rivalry():
     Endpoint: GET /api/os-rivalry?device={device}
 
     Parameters:
-    - device: "mobile" | "tablet" | "mobile+tablet" (default: "mobile")
+    - device: "mobile" | "tablet" (default: "mobile")
+    - Note: mobile+tablet is NOT supported via this endpoint due to URL encoding issues
 
     Response: Android, iOS만 필터링하여 반환
     """
     device = request.args.get('device', 'mobile')
 
+    # mobile+tablet 요청은 지원하지 않음 (프론트엔드에서 합산 처리)
+    if device == 'mobile+tablet':
+        return jsonify({'error': 'mobile+tablet not supported. Use mobile and tablet separately.'}), 400
+
     # 2019년부터 데이터 가져오기
     df = fetch_statcounter_data(metric="os", device=device, from_year="2019")
+
+    if df.empty:
+        return jsonify({'error': 'No data available'}), 404
+
+    # process_os_data로 Android, iOS만 추출
+    df_processed = process_os_data(df)
+
+    if df_processed.empty:
+        return jsonify({'error': 'No Android/iOS data'}), 404
+
+    data = {
+        'dates': df_processed.index.tolist(),
+        'series': {}
+    }
+
+    for col in df_processed.columns:
+        # NaN이 아닌 값만 유지 (null로 변환)
+        values = df_processed[col].tolist()
+        data['series'][col] = values
+
+    return jsonify(data)
+
+@app.route('/api/os-rivalry-combined')
+def api_os_rivalry_combined():
+    """
+    OS 시장점유율 API - Mobile+Tablet 전용
+
+    URL 인코딩 문제를 피하기 위해 별도 엔드포인트로 분리
+    백엔드에서 params dict로 device='mobile+tablet' 전달
+
+    Response: Android, iOS만 필터링하여 반환
+    """
+    # 2019년부터 데이터 가져오기 (device 파라미터를 params dict로 전달)
+    df = fetch_statcounter_data(metric="os", device="mobile+tablet", from_year="2019")
 
     if df.empty:
         return jsonify({'error': 'No data available'}), 404
