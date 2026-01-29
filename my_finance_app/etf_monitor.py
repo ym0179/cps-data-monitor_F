@@ -42,16 +42,15 @@ class TimeETFMonitor:
         """
         Fetch portfolio data for a specific date (YYYY-MM-DD) via web scraping.
         """
-        # Convert date format for URL parameter
-        date_param = date_str.replace("-", "")
-
+        # TIME ETF expects date in YYYY-MM-DD format (with hyphens)
         params = {
             "idx": self.etf_idx,
-            "pdfDate": date_param
+            "cate": "",
+            "pdfDate": date_str  # Keep hyphens!
         }
 
         try:
-            full_url = f"{self.BASE_URL}?idx={self.etf_idx}&pdfDate={date_param}"
+            full_url = f"{self.BASE_URL}?idx={self.etf_idx}&cate=&pdfDate={date_str}"
             print(f"[TIME ETF] Fetching: {full_url}")
 
             resp = requests.get(self.BASE_URL, params=params, headers=self.HEADERS, timeout=10)
