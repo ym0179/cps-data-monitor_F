@@ -199,6 +199,50 @@ def process_search_engine_data(df):
     return df_processed[final_order]
 
 
+def process_os_data(df):
+    """
+    OS 데이터에서 Android와 iOS만 추출
+
+    Parameters:
+    -----------
+    df : DataFrame
+        StatCounter에서 가져온 원본 OS 데이터
+
+    Returns:
+    --------
+    DataFrame with Android and iOS columns only
+    """
+    if df.empty:
+        return df
+
+    cols = df.columns.tolist()
+
+    # Android 컬럼 찾기
+    android_col = None
+    for c in cols:
+        if 'android' in c.lower():
+            android_col = c
+            break
+
+    # iOS 컬럼 찾기
+    ios_col = None
+    for c in cols:
+        if 'ios' in c.lower():
+            ios_col = c
+            break
+
+    # 결과 DataFrame 생성
+    df_processed = pd.DataFrame(index=df.index)
+
+    if android_col:
+        df_processed['Android'] = df[android_col]
+    if ios_col:
+        df_processed['iOS'] = df[ios_col]
+
+    # NaN 값을 0으로 처리하지 않고 그대로 유지 (차트에서 연결되지 않도록)
+    return df_processed
+
+
 # =============================================================================
 # 2. Active ETF (TIMEFOLIO)
 # =============================================================================
@@ -533,27 +577,27 @@ def api_os_rivalry():
     """
     device = request.args.get('device', 'mobile')
 
-    df = fetch_statcounter_data(metric="os", device=device, from_year="2015")
+    # 2019년부터 데이터 가져오기
+    df = fetch_statcounter_data(metric="os", device=device, from_year="2019")
 
     if df.empty:
         return jsonify({'error': 'No data available'}), 404
 
-    # Android, iOS만 필터
-    targets = ['Android', 'iOS']
-    valid_cols = [c for c in df.columns if c in targets]
+    # process_os_data로 Android, iOS만 추출
+    df_processed = process_os_data(df)
 
-    if not valid_cols:
+    if df_processed.empty:
         return jsonify({'error': 'No Android/iOS data'}), 404
 
-    df = df[valid_cols].tail(60)  # 최근 5년
-
     data = {
-        'dates': df.index.tolist(),
+        'dates': df_processed.index.tolist(),
         'series': {}
     }
 
-    for col in df.columns:
-        data['series'][col] = df[col].tolist()
+    for col in df_processed.columns:
+        # NaN이 아닌 값만 유지 (null로 변환)
+        values = df_processed[col].tolist()
+        data['series'][col] = values
 
     return jsonify(data)
 
@@ -790,37 +834,41 @@ def api_os_rivalry_download():
 
     output = io.BytesIO()
 
-    # API에서 데이터 가져오기
-    df = fetch_statcounter_data(metric="os", device=device, from_year="2009")
+    try:
+        # 2019년부터 데이터 가져오기
+        df = fetch_statcounter_data(metric="os", device=device, from_year="2019")
 
-    if df.empty:
-        # 빈 엑셀 파일 반환
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            pd.DataFrame({'Error': ['No data available']}).to_excel(writer, sheet_name='Data', index=False)
-    else:
-        df_processed = process_os_data(df)
-        df_processed = df_processed.sort_index()
+        if df.empty:
+            # 빈 엑셀 파일 반환
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                pd.DataFrame({'Error': ['No data available']}).to_excel(writer, sheet_name='Data', index=False)
+        else:
+            df_processed = process_os_data(df)
+            df_processed = df_processed.sort_index()
 
-        # 날짜 필터링
-        if start_date and end_date:
-            df_processed = df_processed[
-                (df_processed.index >= start_date) &
-                (df_processed.index <= end_date)
-            ]
+            # 날짜 필터링
+            if start_date and end_date:
+                df_processed = df_processed[
+                    (df_processed.index >= start_date) &
+                    (df_processed.index <= end_date)
+                ]
 
-        df_export = df_processed.reset_index()
-        df_export.columns = ['Date'] + list(df_export.columns[1:])
+            df_export = df_processed.reset_index()
+            df_export.columns = ['Date'] + list(df_export.columns[1:])
 
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df_export.to_excel(writer, sheet_name=f'{device.capitalize()}', index=False)
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df_export.to_excel(writer, sheet_name=f'{device.capitalize()}', index=False)
 
-    output.seek(0)
+        output.seek(0)
 
-    return Response(
-        output,
-        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        headers={'Content-Disposition': f'attachment; filename=os_market_share_{device}.xlsx'}
-    )
+        return Response(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={'Content-Disposition': f'attachment; filename=os_market_share_{device}.xlsx'}
+        )
+    except Exception as e:
+        print(f"Excel download error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == '__main__':

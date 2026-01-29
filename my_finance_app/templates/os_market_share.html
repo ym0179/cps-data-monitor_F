@@ -2,81 +2,165 @@
 
 {% block title %}OS Market Share - Market Data{% endblock %}
 
+{% block extra_css %}
+<style>
+    .data-table {
+        font-size: 11px;
+        overflow-x: auto;
+    }
+    .data-table table {
+        min-width: 100%;
+        border-collapse: collapse;
+    }
+    .data-table th, .data-table td {
+        padding: 4px 6px;
+        text-align: center;
+        border: 1px solid #ddd;
+        white-space: nowrap;
+    }
+    .data-table th {
+        background: #f5f5f5;
+        font-weight: 600;
+        position: sticky;
+        left: 0;
+        z-index: 1;
+    }
+    .data-table td:first-child {
+        position: sticky;
+        left: 0;
+        background: #fff;
+        font-weight: 500;
+        z-index: 1;
+    }
+    /* 색상 포맷팅 */
+    .bg-android { background-color: #c6efce !important; color: #006100; }
+    .bg-ios { background-color: #f2f2f2 !important; }
+
+    .section-title {
+        background: linear-gradient(90deg, #0d6efd 0%, #20c997 100%);
+        color: white;
+        padding: 8px 15px;
+        font-weight: 600;
+        margin-bottom: 0;
+    }
+    .chart-container {
+        height: 400px;
+    }
+    .filter-section {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    /* 날짜 입력 스타일 */
+    .date-input {
+        width: 100px;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid px-3 py-3">
     <!-- 헤더 -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h4 class="mb-1"><i class="bi bi-phone text-primary me-2"></i>OS Market Share</h4>
-            <p class="text-muted mb-0">
-                <small>Data Source: <a href="https://gs.statcounter.com/os-market-share" target="_blank">StatCounter Global Stats</a> (2009 ~ Present)</small>
-            </p>
+    <div class="mb-3">
+        <h4 class="mb-1"><i class="bi bi-phone text-primary me-2"></i>OS Market Share</h4>
+        <p class="text-muted mb-0">
+            <small>Data Source: <a href="https://gs.statcounter.com/os-market-share" target="_blank">StatCounter Global Stats</a> (Jan 2019 ~ Present)</small>
+        </p>
+    </div>
+
+    <!-- 날짜 필터 섹션 -->
+    <div class="filter-section">
+        <div class="row align-items-center">
+            <div class="col-auto">
+                <label class="form-label mb-0 fw-bold"><i class="bi bi-calendar-range me-1"></i>기간 선택:</label>
+            </div>
+            <div class="col-auto">
+                <input type="text" id="filterFrom" class="form-control form-control-sm date-input" list="dateListFrom" placeholder="YYYY-MM">
+                <datalist id="dateListFrom"></datalist>
+            </div>
+            <div class="col-auto">
+                <span class="text-muted">~</span>
+            </div>
+            <div class="col-auto">
+                <input type="text" id="filterTo" class="form-control form-control-sm date-input" list="dateListTo" placeholder="YYYY-MM">
+                <datalist id="dateListTo"></datalist>
+            </div>
+            <div class="col-auto">
+                <button id="btnApplyFilter" class="btn btn-primary btn-sm">
+                    <i class="bi bi-funnel me-1"></i>적용
+                </button>
+                <button id="btnResetFilter" class="btn btn-outline-secondary btn-sm ms-1">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>전체보기
+                </button>
+            </div>
+            <div class="col-auto ms-3">
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-primary quick-filter" data-months="12">1Y</button>
+                    <button type="button" class="btn btn-outline-primary quick-filter" data-months="36">3Y</button>
+                    <button type="button" class="btn btn-outline-primary quick-filter" data-months="60">5Y</button>
+                    <button type="button" class="btn btn-outline-primary quick-filter active" data-months="0">All</button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- 필터 및 다운로드 섹션 -->
-    <div class="card mb-3">
-        <div class="card-body">
-            <div class="row align-items-end">
-                <!-- 디바이스 선택 -->
-                <div class="col-md-3 mb-2">
-                    <label class="form-label fw-bold">Device</label>
-                    <div class="btn-group w-100" role="group">
-                        <input type="radio" class="btn-check" name="osDevice" id="osMobile" value="mobile" checked>
-                        <label class="btn btn-outline-primary" for="osMobile">Mobile</label>
-                        <input type="radio" class="btn-check" name="osDevice" id="osTablet" value="tablet">
-                        <label class="btn btn-outline-primary" for="osTablet">Tablet</label>
+    <!-- 차트 섹션 (위에 배치) -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header py-2">
+                    <small class="fw-bold">OS Market Share (%, Mobile)</small>
+                </div>
+                <div class="card-body p-2">
+                    <div id="chartMobile" class="chart-container">
+                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
                     </div>
                 </div>
-
-                <!-- 날짜 필터 -->
-                <div class="col-md-3 mb-2">
-                    <label for="osStartDate" class="form-label fw-bold">Start Date</label>
-                    <input type="month" class="form-control" id="osStartDate" value="2020-01">
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header py-2">
+                    <small class="fw-bold">OS Market Share (%, Tablet)</small>
                 </div>
-                <div class="col-md-3 mb-2">
-                    <label for="osEndDate" class="form-label fw-bold">End Date</label>
-                    <input type="month" class="form-control" id="osEndDate">
-                </div>
-
-                <!-- 버튼 -->
-                <div class="col-md-3 mb-2">
-                    <button class="btn btn-primary w-100 mb-1" onclick="applyOSFilter()">
-                        <i class="bi bi-funnel me-1"></i>Apply Filter
-                    </button>
-                    <button class="btn btn-success w-100" onclick="downloadOSExcel()">
-                        <i class="bi bi-download me-1"></i>Download Excel
-                    </button>
+                <div class="card-body p-2">
+                    <div id="chartTablet" class="chart-container">
+                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 차트 섹션 -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <span class="fw-bold"><i class="bi bi-graph-up me-2"></i>OS Market Share Chart</span>
-        </div>
-        <div class="card-body">
-            <div id="osChart" style="height: 450px;">
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status"></div>
-                    <p class="mt-2 text-muted">Loading data...</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 데이터 테이블 섹션 -->
+    <!-- 데이터 테이블 섹션 (아래에 배치) -->
     <div class="card">
-        <div class="card-header">
-            <span class="fw-bold"><i class="bi bi-table me-2"></i>Data Table</span>
+        <div class="section-title d-flex justify-content-between align-items-center">
+            <span>OS Market Share Data Table</span>
+            <a href="#" id="btnDownloadExcel" class="btn btn-light btn-sm">
+                <i class="bi bi-file-earmark-excel me-1"></i>Excel 다운로드
+            </a>
         </div>
-        <div class="card-body">
-            <div id="osTable">
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status"></div>
-                    <p class="mt-2 text-muted">Loading data...</p>
+        <div class="card-body p-2">
+            <ul class="nav nav-tabs mb-2" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tab-mobile" data-bs-toggle="tab" data-bs-target="#table-mobile" type="button">Mobile</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-tablet" data-bs-toggle="tab" data-bs-target="#table-tablet" type="button">Tablet</button>
+                </li>
+            </ul>
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="table-mobile">
+                    <div id="tableMobile" class="data-table">
+                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="table-tablet">
+                    <div id="tableTablet" class="data-table">
+                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -87,67 +171,115 @@
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 
 <script>
-let currentOSData = null;
-let currentDevice = 'mobile';
+let rawDataMobile = null;
+let rawDataTablet = null;
+let currentFilterFrom = null;
+let currentFilterTo = null;
 
-// 현재 날짜를 YYYY-MM 형식으로 설정
-document.getElementById('osEndDate').value = new Date().toISOString().slice(0, 7);
+// 데이터 로드
+function loadAllData() {
+    Promise.all([
+        fetch('/api/os-rivalry?device=mobile').then(res => res.json()),
+        fetch('/api/os-rivalry?device=tablet').then(res => res.json())
+    ]).then(([mobile, tablet]) => {
+        rawDataMobile = mobile;
+        rawDataTablet = tablet;
 
-// OS 데이터 로드
-function loadOSData(device) {
-    currentDevice = device;
+        // 날짜 목록 생성 (mobile 기준)
+        if (mobile.dates && mobile.dates.length > 0) {
+            const dateListFrom = document.getElementById('dateListFrom');
+            const dateListTo = document.getElementById('dateListTo');
 
-    // 로딩 표시
-    document.getElementById('osChart').innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Loading data...</p></div>';
-    document.getElementById('osTable').innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Loading data...</p></div>';
+            mobile.dates.forEach(date => {
+                const optFrom = document.createElement('option');
+                optFrom.value = date;
+                dateListFrom.appendChild(optFrom);
 
-    fetch(`/api/os-rivalry?device=${device}`)
-        .then(res => res.json())
-        .then(data => {
-            if (data.error) {
-                document.getElementById('osChart').innerHTML = '<p class="text-danger text-center py-5">Failed to load data</p>';
-                document.getElementById('osTable').innerHTML = '<p class="text-danger text-center py-5">Failed to load data</p>';
-                return;
-            }
+                const optTo = document.createElement('option');
+                optTo.value = date;
+                dateListTo.appendChild(optTo);
+            });
 
-            currentOSData = data;
-            renderOSChart(data);
-            renderOSTable(data);
-        })
-        .catch(err => {
-            console.error('Error loading OS data:', err);
-            document.getElementById('osChart').innerHTML = '<p class="text-danger text-center py-5">Error loading data</p>';
-            document.getElementById('osTable').innerHTML = '<p class="text-danger text-center py-5">Error loading data</p>';
+            // 기본값 설정
+            document.getElementById('filterFrom').value = mobile.dates[0];
+            document.getElementById('filterTo').value = mobile.dates[mobile.dates.length - 1];
+        }
+
+        renderAllCharts();
+        renderAllTables();
+    }).catch(err => {
+        console.error('Data load error:', err);
+        const errorMsg = '<p class="text-danger text-center py-5">데이터 로드 실패</p>';
+        ['tableMobile', 'tableTablet'].forEach(id => {
+            document.getElementById(id).innerHTML = errorMsg;
         });
+        ['chartMobile', 'chartTablet'].forEach(id => {
+            document.getElementById(id).innerHTML = errorMsg;
+        });
+    });
 }
 
-// 차트 렌더링
-function renderOSChart(data) {
-    const container = document.getElementById('osChart');
+// 차트 생성
+function createChart(containerId, data, device) {
+    const container = document.getElementById(containerId);
 
     try {
+        if (!data || !data.dates || data.dates.length === 0) {
+            container.innerHTML = '<p class="text-center text-muted py-3">데이터 없음</p>';
+            return;
+        }
+
+        // 필터링된 데이터
+        let filteredDates = data.dates;
+        let filteredSeries = {};
+
+        if (currentFilterFrom && currentFilterTo) {
+            const indices = [];
+            filteredDates = [];
+
+            data.dates.forEach((date, idx) => {
+                if (date >= currentFilterFrom && date <= currentFilterTo) {
+                    indices.push(idx);
+                    filteredDates.push(date);
+                }
+            });
+
+            Object.keys(data.series).forEach(key => {
+                filteredSeries[key] = indices.map(idx => data.series[key][idx]);
+            });
+        } else {
+            filteredSeries = data.series;
+        }
+
         const traces = [];
         const colors = { 'Android': '#3DDC84', 'iOS': '#555555' };
 
-        for (const [name, values] of Object.entries(data.series)) {
+        Object.keys(filteredSeries).forEach(name => {
             traces.push({
-                x: data.dates,
-                y: values,
+                x: filteredDates,
+                y: filteredSeries[name],
                 name: name,
                 type: 'scatter',
                 mode: 'lines',
-                line: { width: 3, color: colors[name] || '#999999' },
+                line: { width: 2, color: colors[name] || '#999999' },
                 connectgaps: false,
                 hovertemplate: '%{fullData.name}<br>%{x}<br>%{y:.2f}%<extra></extra>'
             });
-        }
+        });
 
         const layout = {
-            title: `OS Market Share (${currentDevice})`,
-            xaxis: { title: 'Date' },
+            margin: { l: 40, r: 20, t: 10, b: 30 },
+            xaxis: { title: '' },
             yaxis: { title: 'Market Share (%)', range: [0, 100] },
             hovermode: 'x unified',
-            legend: { orientation: 'h', y: -0.2 }
+            legend: {
+                orientation: 'h',
+                y: -0.3,
+                x: 0.5,
+                xanchor: 'center',
+                font: { size: 10 }
+            },
+            showlegend: true
         };
 
         const config = {
@@ -155,7 +287,7 @@ function renderOSChart(data) {
             displayModeBar: false
         };
 
-        Plotly.newPlot('osChart', traces, layout, config)
+        Plotly.newPlot(containerId, traces, layout, config)
             .catch(err => {
                 console.error('Plotly render error:', err);
                 container.innerHTML = '<p class="text-danger text-center py-5">차트 렌더링 실패</p>';
@@ -166,122 +298,154 @@ function renderOSChart(data) {
     }
 }
 
-// 테이블 렌더링
-function renderOSTable(data) {
-    const container = document.getElementById('osTable');
+// 테이블 생성
+function createTable(containerId, data, device) {
+    const container = document.getElementById(containerId);
 
     try {
-        if (!data.dates || data.dates.length === 0) {
-            container.innerHTML = '<p class="text-center text-muted py-3">No data available</p>';
+        if (!data || !data.dates || data.dates.length === 0) {
+            container.innerHTML = '<p class="text-center text-muted py-3">데이터 없음</p>';
             return;
         }
 
-        // 테이블 생성
-        let tableHTML = `
-            <div class="table-responsive">
-                <table class="table table-striped table-hover table-sm">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Date</th>
-        `;
+        // 필터링된 데이터
+        let filteredDates = data.dates;
+        let filteredSeries = {};
 
-        // 헤더 추가
-        for (const name of Object.keys(data.series)) {
-            tableHTML += `<th class="text-end">${name}</th>`;
-        }
-        tableHTML += '</tr></thead><tbody>';
+        if (currentFilterFrom && currentFilterTo) {
+            const indices = [];
+            filteredDates = [];
 
-        // 데이터 행 추가 (최신 데이터가 위로 오도록 역순)
-        for (let i = data.dates.length - 1; i >= 0; i--) {
-            tableHTML += `<tr><td>${data.dates[i]}</td>`;
-            for (const values of Object.values(data.series)) {
-                const value = values[i];
-                if (value !== null && value !== undefined && !isNaN(value)) {
-                    tableHTML += `<td class="text-end">${value.toFixed(2)}%</td>`;
-                } else {
-                    tableHTML += `<td class="text-end text-muted">-</td>`;
+            data.dates.forEach((date, idx) => {
+                if (date >= currentFilterFrom && date <= currentFilterTo) {
+                    indices.push(idx);
+                    filteredDates.push(date);
                 }
-            }
-            tableHTML += '</tr>';
+            });
+
+            Object.keys(data.series).forEach(key => {
+                filteredSeries[key] = indices.map(idx => data.series[key][idx]);
+            });
+        } else {
+            filteredSeries = data.series;
         }
 
-        tableHTML += '</tbody></table></div>';
-        container.innerHTML = tableHTML;
+        let html = '<table class="table table-sm table-bordered table-hover mb-0"><thead><tr><th>Date</th>';
+        Object.keys(filteredSeries).forEach(name => {
+            html += `<th class="bg-${name.toLowerCase()}">${name}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+
+        // 최신 데이터가 위로 오도록 역순
+        for (let i = filteredDates.length - 1; i >= 0; i--) {
+            html += `<tr><td>${filteredDates[i]}</td>`;
+            Object.values(filteredSeries).forEach(values => {
+                const val = values[i];
+                if (val !== null && val !== undefined && !isNaN(val)) {
+                    html += `<td>${val.toFixed(2)}%</td>`;
+                } else {
+                    html += `<td class="text-muted">-</td>`;
+                }
+            });
+            html += '</tr>';
+        }
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
     } catch (err) {
         console.error('Table creation error:', err);
         container.innerHTML = '<p class="text-danger text-center py-5">테이블 생성 오류</p>';
     }
 }
 
-// 날짜 필터 적용
-function applyOSFilter() {
-    if (!currentOSData) return;
-
-    const startDate = document.getElementById('osStartDate').value;
-    const endDate = document.getElementById('osEndDate').value;
-
-    if (!startDate || !endDate) {
-        alert('Please select both start and end dates');
-        return;
-    }
-
-    if (startDate > endDate) {
-        alert('Start date must be before end date');
-        return;
-    }
-
-    // 필터링된 데이터 생성
-    const filteredData = {
-        dates: [],
-        series: {}
-    };
-
-    // series 초기화
-    for (const name of Object.keys(currentOSData.series)) {
-        filteredData.series[name] = [];
-    }
-
-    // 날짜 필터링
-    for (let i = 0; i < currentOSData.dates.length; i++) {
-        const date = currentOSData.dates[i];
-        const yearMonth = date.substring(0, 7); // YYYY-MM 형식
-
-        if (yearMonth >= startDate && yearMonth <= endDate) {
-            filteredData.dates.push(date);
-            for (const [name, values] of Object.entries(currentOSData.series)) {
-                filteredData.series[name].push(values[i]);
-            }
-        }
-    }
-
-    if (filteredData.dates.length === 0) {
-        alert('No data available for the selected date range');
-        return;
-    }
-
-    renderOSChart(filteredData);
-    renderOSTable(filteredData);
+// 모든 차트 렌더링
+function renderAllCharts() {
+    createChart('chartMobile', rawDataMobile, 'mobile');
+    createChart('chartTablet', rawDataTablet, 'tablet');
 }
+
+// 모든 테이블 렌더링
+function renderAllTables() {
+    createTable('tableMobile', rawDataMobile, 'mobile');
+    createTable('tableTablet', rawDataTablet, 'tablet');
+}
+
+// 필터 적용
+document.getElementById('btnApplyFilter').addEventListener('click', () => {
+    currentFilterFrom = document.getElementById('filterFrom').value;
+    currentFilterTo = document.getElementById('filterTo').value;
+
+    if (!currentFilterFrom || !currentFilterTo) {
+        alert('시작 날짜와 종료 날짜를 모두 입력하세요');
+        return;
+    }
+
+    if (currentFilterFrom > currentFilterTo) {
+        alert('시작 날짜가 종료 날짜보다 뒤일 수 없습니다');
+        return;
+    }
+
+    document.querySelectorAll('.quick-filter').forEach(btn => btn.classList.remove('active'));
+    renderAllCharts();
+    renderAllTables();
+});
+
+// 필터 초기화
+document.getElementById('btnResetFilter').addEventListener('click', () => {
+    if (rawDataMobile && rawDataMobile.dates && rawDataMobile.dates.length > 0) {
+        document.getElementById('filterFrom').value = rawDataMobile.dates[0];
+        document.getElementById('filterTo').value = rawDataMobile.dates[rawDataMobile.dates.length - 1];
+        currentFilterFrom = null;
+        currentFilterTo = null;
+        document.querySelectorAll('.quick-filter').forEach(btn => btn.classList.remove('active'));
+        document.querySelector('.quick-filter[data-months="0"]').classList.add('active');
+        renderAllCharts();
+        renderAllTables();
+    }
+});
+
+// 빠른 필터
+document.querySelectorAll('.quick-filter').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const months = parseInt(this.getAttribute('data-months'));
+
+        document.querySelectorAll('.quick-filter').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+
+        if (months === 0) {
+            // 전체보기
+            document.getElementById('btnResetFilter').click();
+        } else if (rawDataMobile && rawDataMobile.dates && rawDataMobile.dates.length > 0) {
+            const endDate = rawDataMobile.dates[rawDataMobile.dates.length - 1];
+            const endDateObj = new Date(endDate + '-01');
+            endDateObj.setMonth(endDateObj.getMonth() - months);
+            const startDate = endDateObj.toISOString().slice(0, 7);
+
+            document.getElementById('filterFrom').value = startDate;
+            document.getElementById('filterTo').value = endDate;
+            currentFilterFrom = startDate;
+            currentFilterTo = endDate;
+
+            renderAllCharts();
+            renderAllTables();
+        }
+    });
+});
 
 // Excel 다운로드
-function downloadOSExcel() {
-    if (!currentOSData) {
-        alert('No data to download');
-        return;
-    }
+document.getElementById('btnDownloadExcel').addEventListener('click', (e) => {
+    e.preventDefault();
 
-    const startDate = document.getElementById('osStartDate').value;
-    const endDate = document.getElementById('osEndDate').value;
+    const activeTab = document.querySelector('.nav-link.active').id;
+    const device = activeTab === 'tab-mobile' ? 'mobile' : 'tablet';
 
-    window.location.href = `/api/os-rivalry/download?device=${currentDevice}&start_date=${startDate}&end_date=${endDate}`;
-}
+    const from = document.getElementById('filterFrom').value || '2019-01';
+    const to = document.getElementById('filterTo').value || new Date().toISOString().slice(0, 7);
 
-// 디바이스 변경 이벤트
-document.querySelectorAll('input[name="osDevice"]').forEach(radio => {
-    radio.addEventListener('change', (e) => loadOSData(e.target.value));
+    window.location.href = `/api/os-rivalry/download?device=${device}&start_date=${from}&end_date=${to}`;
 });
 
 // 초기 로드
-loadOSData('mobile');
+loadAllData();
 </script>
 {% endblock %}
