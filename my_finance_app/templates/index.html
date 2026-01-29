@@ -2,42 +2,140 @@
 
 {% block title %}고객상품전략팀 - AI 투자 대시보드{% endblock %}
 
-{% block content %}
-<div class="container-fluid px-3 py-3">
+{% block extra_css %}
+<style>
+    .feature-card-modern {
+        display: flex;
+        align-items: center;
+        padding: 2rem;
+        border-radius: 20px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        border: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        height: 140px;
+    }
 
-    <!-- ============================================ -->
-    <!-- 주요 기능 바로가기 -->
-    <!-- ============================================ -->
-    <div>
-        <h6 class="mb-3"><i class="bi bi-grid me-2"></i>주요 기능</h6>
-        <div class="row g-3">
-            <div class="col-md-4">
-                <a href="/earnings" class="card feature-card h-100 text-decoration-none">
-                    <div class="card-body text-center">
-                        <i class="bi bi-graph-up-arrow feature-icon text-primary"></i>
-                        <h6 class="mt-2 mb-1">Earnings Trading</h6>
-                        <small class="text-muted">Idio Score 기반 알파 발굴</small>
-                    </div>
-                </a>
-            </div>
-            <div class="col-md-4">
-                <a href="/etf" class="card feature-card h-100 text-decoration-none">
-                    <div class="card-body text-center">
-                        <i class="bi bi-pie-chart-fill feature-icon text-success"></i>
-                        <h6 class="mt-2 mb-1">Active ETF</h6>
-                        <small class="text-muted">TOP 1% 매니저 포트폴리오</small>
-                    </div>
-                </a>
-            </div>
-            <div class="col-md-4">
-                <a href="/market/search-engine" class="card feature-card h-100 text-decoration-none">
-                    <div class="card-body text-center">
-                        <i class="bi bi-bar-chart-fill feature-icon text-info"></i>
-                        <h6 class="mt-2 mb-1">Market Data</h6>
-                        <small class="text-muted">글로벌 시장 점유율 추적</small>
-                    </div>
-                </a>
-            </div>
+    .feature-card-modern:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    .feature-icon-container {
+        width: 80px;
+        height: 80px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        margin-right: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .feature-content {
+        flex: 1;
+        text-align: left;
+    }
+
+    .feature-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.25rem;
+    }
+
+    .feature-description {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin: 0;
+    }
+
+    /* Card Colors */
+    .card-interest-top50 {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    }
+
+    .card-interest-top50 .feature-icon-container {
+        background: rgba(255, 255, 255, 0.5);
+    }
+
+    .card-growth-stocks {
+        background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+    }
+
+    .card-growth-stocks .feature-icon-container {
+        background: rgba(255, 255, 255, 0.5);
+    }
+
+    .card-rocket-stocks {
+        background: linear-gradient(135deg, #c7d2fe 0%, #a5b4fc 100%);
+    }
+
+    .card-rocket-stocks .feature-icon-container {
+        background: rgba(255, 255, 255, 0.5);
+    }
+
+    .page-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+
+    .page-subtitle {
+        font-size: 1rem;
+        color: #6b7280;
+        margin-bottom: 2.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+
+    <!-- Page Header -->
+    <div class="mb-4">
+        <h1 class="page-title">고객상품전략팀</h1>
+        <p class="page-subtitle">AI 기반 투자 인사이트 대시보드</p>
+    </div>
+
+    <!-- Feature Cards -->
+    <div class="row g-4">
+        <div class="col-md-4">
+            <a href="/market/search-engine" class="card feature-card-modern card-interest-top50">
+                <div class="feature-icon-container">
+                    <span style="font-size: 3rem;">🏆</span>
+                </div>
+                <div class="feature-content">
+                    <h3 class="feature-title">관심 TOP50</h3>
+                    <p class="feature-description">글로벌 시장 점유율 추적</p>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4">
+            <a href="/etf" class="card feature-card-modern card-growth-stocks">
+                <div class="feature-icon-container">
+                    <span style="font-size: 3rem;">🚀</span>
+                </div>
+                <div class="feature-content">
+                    <h3 class="feature-title">발굴! 성장주</h3>
+                    <p class="feature-description">TOP 1% 매니저 포트폴리오</p>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4">
+            <a href="/earnings" class="card feature-card-modern card-rocket-stocks">
+                <div class="feature-icon-container">
+                    <span style="font-size: 3rem;">🚀</span>
+                </div>
+                <div class="feature-content">
+                    <h3 class="feature-title">로켓 성장주</h3>
+                    <p class="feature-description">Idio Score 기반 알파 발굴</p>
+                </div>
+            </a>
         </div>
     </div>
 

@@ -466,6 +466,14 @@ class KiwoomETFMonitor:
     }
     KST = pytz.timezone('Asia/Seoul')
 
+    # ISIN 코드 → yfinance 티커 매핑 테이블
+    ISIN_TO_TICKER = {
+        'CA13321L1085': 'CCJ',      # Cameco Corp
+        'US02079K3059': 'GOOGL',    # Alphabet Inc Class A
+        'US02079K1079': 'GOOG',     # Alphabet Inc Class C
+        # 필요시 추가 매핑
+    }
+
     def __init__(self, data_dir: str = "./data/kiwoom_etf"):
         self.data_dir = data_dir
         os.makedirs(self.data_dir, exist_ok=True)
@@ -574,6 +582,10 @@ class KiwoomETFMonitor:
         종목코드를 yfinance 티커로 변환 (TIME ETF와 동일)
         """
         code = code.strip()
+
+        # ISIN 코드 매핑 확인
+        if code in self.ISIN_TO_TICKER:
+            return self.ISIN_TO_TICKER[code]
 
         # 선물 처리
         if 'Index' in code or 'FUT' in code:
