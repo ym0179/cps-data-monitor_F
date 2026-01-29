@@ -282,8 +282,15 @@ def update_active_etf_cache():
                 previous_date = valid_dates[i + 1]
 
                 try:
-                    # 리밸런싱 분석 실행
-                    rebalancing_result = monitor.analyze_rebalancing(current_date, previous_date)
+                    # 리밸런싱 분석 실행 - DataFrame을 먼저 로드
+                    df_today = monitor.load_data(current_date)
+                    df_prev = monitor.load_data(previous_date)
+
+                    if df_today is None or df_prev is None or df_today.empty or df_prev.empty:
+                        print(f"      ✗ {current_date} vs {previous_date}: 데이터 로드 실패")
+                        continue
+
+                    rebalancing_result = monitor.analyze_rebalancing(df_today, df_prev, current_date, previous_date)
 
                     if rebalancing_result:
                         # 캐시 파일명: {etf_id}_{current_date}_vs_{previous_date}.json
