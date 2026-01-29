@@ -157,15 +157,17 @@
                     <table class="table table-hover earnings-table mb-0">
                         <thead>
                             <tr>
-                                <th style="width: 10%;">Ticker</th>
-                                <th style="width: 25%;">Company Name</th>
-                                <th style="width: 10%;">Date</th>
-                                <th style="width: 10%;" class="text-center">Idio Score</th>
-                                <th style="width: 10%;" class="text-end">Mkt Beta</th>
-                                <th style="width: 10%;" class="text-end">Daily Ret</th>
-                                <th style="width: 10%;" class="text-end">Daily Vol</th>
-                                <th style="width: 10%;" class="text-center">VIX Mult</th>
-                                <th style="width: 5%;" class="text-center">Status</th>
+                                <th style="width: 7%;">Symbol</th>
+                                <th style="width: 18%;">Company</th>
+                                <th style="width: 8%;">Date</th>
+                                <th style="width: 7%;">Call Time</th>
+                                <th style="width: 7%;" class="text-end">EPS Est.</th>
+                                <th style="width: 8%;">Market Cap</th>
+                                <th style="width: 9%;">Analyst Rating</th>
+                                <th style="width: 6%;" class="text-center"># Analysts</th>
+                                <th style="width: 8%;" class="text-end">Avg Move (%)<br><small class="text-muted fw-normal">3yr avg</small></th>
+                                <th style="width: 7%;" class="text-end">Vol (%)<br><small class="text-muted fw-normal">3yr std</small></th>
+                                <th style="width: 15%;">Trade Alert</th>
                             </tr>
                         </thead>
                         <tbody id="earningsTableBody">
@@ -308,7 +310,7 @@ function createVIXChart(dates, values) {
     });
 }
 
-// Load Earnings Events (Mock Data for Demo)
+// Load Earnings Events from API
 async function loadEarningsEvents() {
     // Show loading
     document.getElementById('loadingState').style.display = 'block';
@@ -316,22 +318,12 @@ async function loadEarningsEvents() {
     document.getElementById('emptyState').style.display = 'none';
 
     try {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Call API
+        const response = await fetch('/api/earnings/calendar?days=7');
+        const data = await response.json();
 
-        // Mock data (replace with actual API call)
-        const mockData = [
-            {ticker: 'AAPL', name: 'Apple Inc.', date: '2026-02-01', idioScore: 0.85, mktBeta: 1.2, dailyRet: 0.15, dailyVol: 22.3, vixMult: 1.0, status: 'Success'},
-            {ticker: 'MSFT', name: 'Microsoft Corporation', date: '2026-02-03', idioScore: 0.72, mktBeta: 1.1, dailyRet: 0.12, dailyVol: 19.8, vixMult: 1.0, status: 'Success'},
-            {ticker: 'GOOGL', name: 'Alphabet Inc.', date: '2026-02-05', idioScore: 0.63, mktBeta: 1.15, dailyRet: 0.10, dailyVol: 24.1, vixMult: 1.0, status: 'Success'},
-            {ticker: 'AMZN', name: 'Amazon.com Inc.', date: '2026-02-06', idioScore: 0.58, mktBeta: 1.3, dailyRet: 0.08, dailyVol: 26.5, vixMult: 1.0, status: 'Success'},
-            {ticker: 'NVDA', name: 'NVIDIA Corporation', date: '2026-02-08', idioScore: 0.91, mktBeta: 1.8, dailyRet: 0.18, dailyVol: 35.2, vixMult: 1.0, status: 'Success'},
-            {ticker: 'TSLA', name: 'Tesla Inc.', date: '2026-02-10', idioScore: 0.45, mktBeta: 2.1, dailyRet: 0.05, dailyVol: 42.3, vixMult: 1.0, status: 'Success'},
-            {ticker: 'META', name: 'Meta Platforms Inc.', date: '2026-02-12', idioScore: 0.68, mktBeta: 1.4, dailyRet: 0.11, dailyVol: 28.9, vixMult: 1.0, status: 'Success'}
-        ];
-
-        if (mockData.length > 0) {
-            renderEarningsTable(mockData);
+        if (data.length > 0) {
+            renderEarningsTable(data);
             document.getElementById('tableContainer').style.display = 'block';
         } else {
             document.getElementById('emptyState').style.display = 'block';
@@ -351,30 +343,52 @@ function renderEarningsTable(data) {
     data.forEach(item => {
         const row = document.createElement('tr');
 
-        // Score badge color
-        let scoreBadgeClass = 'bg-secondary';
-        if (item.idioScore > 0.7) scoreBadgeClass = 'bg-success';
-        else if (item.idioScore > 0.4) scoreBadgeClass = 'bg-primary';
-        else scoreBadgeClass = 'bg-warning';
+        // Analyst Rating badge
+        let ratingBadgeClass = 'bg-secondary';
+        let ratingText = item.AnalystRating || 'N/A';
 
-        // Status icon
-        let statusIcon = '<i class="bi bi-check-circle-fill text-success"></i>';
-        if (item.status !== 'Success') {
-            statusIcon = '<i class="bi bi-x-circle-fill text-danger"></i>';
+        if (item.AnalystRating) {
+            const rating = item.AnalystRating.toLowerCase();
+            if (rating.includes('strong buy')) {
+                ratingBadgeClass = 'bg-success';
+                ratingText = 'Strong Buy';
+            } else if (rating.includes('buy')) {
+                ratingBadgeClass = 'bg-primary';
+                ratingText = 'Buy';
+            } else if (rating.includes('hold')) {
+                ratingBadgeClass = 'bg-warning';
+                ratingText = 'Hold';
+            } else if (rating.includes('sell')) {
+                ratingBadgeClass = 'bg-danger';
+                ratingText = 'Sell';
+            }
         }
 
+        // Trade Alert
+        let tradeAlertHTML = '<span class="text-muted">-</span>';
+        if (item.TradeAlert && item.TradeAlert !== '-') {
+            tradeAlertHTML = `<span class="badge bg-info text-dark">${item.TradeAlert}</span>`;
+        }
+
+        // Format values
+        const avgMove = item.AvgMove !== null && item.AvgMove !== undefined ? item.AvgMove.toFixed(2) : '-';
+        const volatility = item.Volatility !== null && item.Volatility !== undefined ? item.Volatility.toFixed(2) : '-';
+        const epsEstimate = item.EPSEstimate || '-';
+        const marketCap = item.MarketCap || '-';
+        const analystCount = item.AnalystCount || '-';
+
         row.innerHTML = `
-            <td><span class="font-mono font-weight-bold">${item.ticker}</span></td>
-            <td>${item.name}</td>
-            <td><span class="text-muted small">${item.date}</span></td>
-            <td class="text-center">
-                <span class="badge badge-score ${scoreBadgeClass}">${item.idioScore.toFixed(2)}</span>
-            </td>
-            <td class="text-end">${item.mktBeta.toFixed(2)}</td>
-            <td class="text-end"><span class="${item.dailyRet >= 0 ? 'text-success' : 'text-danger'}">${item.dailyRet >= 0 ? '+' : ''}${item.dailyRet.toFixed(2)}%</span></td>
-            <td class="text-end">${item.dailyVol.toFixed(1)}%</td>
-            <td class="text-center"><span class="text-muted">×${item.vixMult.toFixed(1)}</span></td>
-            <td class="text-center">${statusIcon}</td>
+            <td><span class="font-mono fw-bold">${item.Symbol}</span></td>
+            <td><small>${item.Company}</small></td>
+            <td><small class="text-muted">${item.Date}</small></td>
+            <td><span class="badge ${item.CallTime === '장전' ? 'bg-warning' : 'bg-info'}">${item.CallTime}</span></td>
+            <td class="text-end">${epsEstimate}</td>
+            <td><small>${marketCap}</small></td>
+            <td><span class="badge ${ratingBadgeClass}">${ratingText}</span></td>
+            <td class="text-center">${analystCount}</td>
+            <td class="text-end fw-bold">${avgMove}%</td>
+            <td class="text-end">${volatility}%</td>
+            <td>${tradeAlertHTML}</td>
         `;
 
         tbody.appendChild(row);

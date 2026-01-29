@@ -19,6 +19,12 @@ import json
 from bs4 import BeautifulSoup
 import urllib3
 from etf_monitor import TimeETFMonitor, KiwoomETFMonitor
+from logic.earnings import (
+    fetch_yahoo_earnings_calendar,
+    fetch_analyst_consensus,
+    calculate_earnings_metrics,
+    calculate_trade_alert
+)
 
 # SSL 경고 무시
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -1076,6 +1082,87 @@ def api_vix_current():
     """현재 VIX 값 API"""
     vix_val = get_vix_current()
     return jsonify({'vix': vix_val})
+
+
+@app.route('/api/earnings/calendar')
+def api_earnings_calendar():
+    """
+    Earnings Calendar API (Yahoo Finance 기반)
+
+    Parameters:
+    - date: YYYY-MM-DD (default: today)
+    - days: Number of days (default: 7)
+
+    Response:
+    [
+        {
+            "Symbol": "AAPL",
+            "Company": "Apple Inc.",
+            "Date": "2026-01-29",
+            "CallTime": "장후",
+            "EPSEstimate": "2.67",
+            "ReportedEPS": "-",
+            "Surprise": "-",
+            "MarketCap": "3.81T",
+            "AnalystRating": "buy",
+            "AnalystCount": 45,
+            "AvgMove": 3.5,
+            "Volatility": 2.8,
+            "TradeAlert": "⭐ High Move + Analyst Support"
+        },
+        ...
+    ]
+    """
+    date_str = request.args.get('date', None)
+    days = int(request.args.get('days', 7))
+
+    try:
+        # 1. Fetch calendar from Yahoo Finance
+        df_calendar = fetch_yahoo_earnings_calendar(date_str=date_str, days=days)
+
+        if df_calendar.empty:
+            return jsonify([])
+
+        # 2. Enrich with analyst data and earnings metrics
+        enriched_data = []
+
+        for _, row in df_calendar.iterrows():
+            ticker = row['Symbol']
+
+            # Analyst data
+            analyst_data = fetch_analyst_consensus(ticker)
+
+            # Earnings metrics (3-year avg move and volatility)
+            earnings_metrics = calculate_earnings_metrics(ticker, years=3)
+
+            # Trade Alert
+            trade_alert = calculate_trade_alert(
+                avg_move=earnings_metrics.get('avg_move'),
+                analyst_rating=analyst_data.get('recommendKey'),
+                analyst_count=analyst_data.get('analystCount', 0)
+            )
+
+            enriched_data.append({
+                'Symbol': ticker,
+                'Company': row['Company'],
+                'Date': row['Date'],
+                'CallTime': row['CallTime'],
+                'EPSEstimate': row['EPSEstimate'],
+                'ReportedEPS': row['ReportedEPS'],
+                'Surprise': row['Surprise'],
+                'MarketCap': row['MarketCap'],
+                'AnalystRating': analyst_data.get('recommendKey'),
+                'AnalystCount': analyst_data.get('analystCount', 0),
+                'AvgMove': earnings_metrics.get('avg_move'),
+                'Volatility': earnings_metrics.get('volatility'),
+                'NumEarnings': earnings_metrics.get('num_earnings', 0),
+                'TradeAlert': trade_alert
+            })
+
+        return jsonify(enriched_data)
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == '__main__':
