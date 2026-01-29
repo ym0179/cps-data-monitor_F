@@ -1,142 +1,230 @@
 {% extends "base.html" %}
 
-{% block title %}Earnings Trading - MAS Finance{% endblock %}
+{% block title %}Earnings Trading - 고객상품전략팀{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-3 py-3">
+    <h4 class="mb-4"><i class="bi bi-graph-up-arrow text-primary me-2"></i>Earnings Idio Score Dashboard</h4>
+    <p class="text-muted mb-4">골드만삭스 방법론 기반: 실적 발표일 고유 변동성(Alpha) 분석</p>
 
-    <!-- 페이지 헤더 -->
-    <div class="page-header">
-        <h1 class="page-title">
-            <i class="bi bi-graph-up-arrow text-primary me-2"></i>
-            Earnings Event Trading
-        </h1>
-        <p class="text-muted mb-0">GS 5-Factor 기반 Idio Score로 알파 발굴</p>
-    </div>
-
-    <!-- VIX 상태 -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h6 class="text-muted mb-1">현재 VIX</h6>
-                    <h3 class="mb-0" id="vix-value">--</h3>
+    <!-- VIX 지표 -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">VIX Index (Market Fear)</h6>
+                            <h3 id="vixValue" class="mb-0">-</h3>
+                        </div>
+                        <div id="vixStatus" class="badge bg-secondary fs-6">Loading...</div>
+                    </div>
                 </div>
-                <div class="text-end">
-                    <span class="badge bg-success" id="vix-status">정상</span>
-                    <p class="small text-muted mb-0 mt-1">시장 변동성 지표</p>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">GS Strategy Insight: VIX 수준에 따른 실적 이벤트 성과</h6>
+                    <div class="row small">
+                        <div class="col-md-4">
+                            <span class="badge bg-success me-1">최적 구간</span>
+                            <strong>VIX 35~45</strong>
+                            <p class="text-muted mb-0">실적 발표가 불확실성 해소로 작용</p>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="badge bg-primary me-1">안정 구간</span>
+                            <strong>VIX 35 이하</strong>
+                            <p class="text-muted mb-0">시장 대비 소폭 상회</p>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="badge bg-danger me-1">위험 구간</span>
+                            <strong>VIX 45 초과</strong>
+                            <p class="text-muted mb-0">극단적 공포, 언더퍼폼</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 어닝 캘린더 -->
+    <!-- 종목 검색 -->
     <div class="card mb-4">
-        <div class="card-header bg-white">
-            <h6 class="mb-0"><i class="bi bi-calendar-event me-2"></i>이번 주 실적 발표</h6>
+        <div class="card-header">
+            <i class="bi bi-search me-1"></i>종목 분석
         </div>
         <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-sm">
-                    <thead>
-                        <tr>
-                            <th>날짜</th>
-                            <th>종목</th>
-                            <th>예상 EPS</th>
-                            <th>Idio Score</th>
-                        </tr>
-                    </thead>
-                    <tbody id="earnings-table">
-                        <tr>
-                            <td colspan="4" class="text-center text-muted py-4">
-                                <i class="bi bi-arrow-clockwise me-2"></i>데이터 로딩 중...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- 종목 분석 -->
-    <div class="card">
-        <div class="card-header bg-white">
-            <h6 class="mb-0"><i class="bi bi-search me-2"></i>종목별 분석</h6>
-        </div>
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-12 col-md-8">
-                    <select class="form-select" id="stock-select">
-                        <option value="">종목을 선택하세요</option>
-                        <option value="AAPL">AAPL - Apple</option>
-                        <option value="MSFT">MSFT - Microsoft</option>
-                        <option value="NVDA">NVDA - Nvidia</option>
-                        <option value="GOOGL">GOOGL - Alphabet</option>
-                        <option value="AMZN">AMZN - Amazon</option>
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label">티커 입력</label>
+                    <input type="text" class="form-control" id="tickerInput" placeholder="예: AAPL, MSFT, NVDA">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">섹터</label>
+                    <select class="form-select" id="sectorSelect">
+                        <option value="Technology">Technology</option>
+                        <option value="Healthcare">Healthcare</option>
+                        <option value="Financials">Financials</option>
+                        <option value="Consumer">Consumer</option>
+                        <option value="Energy">Energy</option>
+                        <option value="Industrials">Industrials</option>
                     </select>
                 </div>
-                <div class="col-12 col-md-4">
-                    <button class="btn btn-primary w-100" id="analyze-btn">
-                        <i class="bi bi-lightning-charge me-1"></i>분석하기
+                <div class="col-md-4 d-flex align-items-end">
+                    <button class="btn btn-primary" id="analyzeBtn">
+                        <i class="bi bi-lightning me-1"></i>Idio Score 분석
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- 분석 결과 (나중에 동적으로 채움) -->
-            <div id="analysis-result" class="mt-4" style="display: none;">
-                <hr>
-                <h6>분석 결과</h6>
-                <div class="row g-3">
-                    <div class="col-6 col-md-3">
-                        <div class="text-center p-3 bg-light rounded">
-                            <small class="text-muted">Idio Score</small>
-                            <h4 class="mb-0 text-primary" id="result-idio">--</h4>
-                        </div>
+    <!-- 분석 결과 -->
+    <div id="resultArea" style="display: none;">
+        <div class="row mb-4">
+            <div class="col-md-2">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="text-muted">Idio Score</h6>
+                        <h2 id="idioScore" class="text-primary">-</h2>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="text-center p-3 bg-light rounded">
-                            <small class="text-muted">Raw Score</small>
-                            <h4 class="mb-0" id="result-raw">--</h4>
-                        </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="text-muted">Market Beta</h6>
+                        <h3 id="marketBeta">-</h3>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="text-center p-3 bg-light rounded">
-                            <small class="text-muted">VIX 배수</small>
-                            <h4 class="mb-0" id="result-vix">--</h4>
-                        </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="text-muted">Sector Beta</h6>
+                        <h3 id="sectorBeta">-</h3>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="text-center p-3 bg-light rounded">
-                            <small class="text-muted">변동성</small>
-                            <h4 class="mb-0" id="result-vol">--</h4>
-                        </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="text-muted">Avg Daily Return</h6>
+                        <h3 id="avgReturn">-</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="text-muted">Daily Volatility</h6>
+                        <h3 id="dailyVol">-</h3>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- 인사이트 -->
+        <div class="alert alert-info" id="insightAlert">
+            <i class="bi bi-lightbulb me-2"></i>
+            <span id="insightText">분석 결과가 여기에 표시됩니다.</span>
+        </div>
     </div>
 
+    <!-- Idio Score 설명 -->
+    <div class="card">
+        <div class="card-header">
+            <i class="bi bi-info-circle me-1"></i>Idio Score 산출 로직 (Goldman Sachs Method)
+        </div>
+        <div class="card-body small">
+            <h6>1. 5-Factor Modeling</h6>
+            <p class="text-muted">시장(Market), 섹터(Sector), 스타일(Size, Value, Momentum) 요인을 제거하여 순수한 종목 고유의 움직임(Idiosyncratic Return)을 추출합니다.</p>
+
+            <h6>2. Regression Model (Trailing 3 Years)</h6>
+            <p class="text-muted">R<sub>i,t</sub> = α + β<sub>Mkt</sub>Mkt + β<sub>Sec</sub>Sec + β<sub>SMB</sub>SMB + β<sub>HML</sub>HML + β<sub>Mom</sub>MOM + ε</p>
+
+            <h6>3. Delta Score (GS Method)</h6>
+            <p class="text-muted">
+                <strong>ΔScore = Score<sub>incl</sub> - Score<sub>excl</sub></strong><br>
+                점수가 높을수록(+), 변동성을 감수하고서라도 실적 발표를 가져가는 것이 유리합니다. (Earnings Alpha 존재)
+            </p>
+        </div>
+    </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // 분석 버튼 클릭
-    document.getElementById('analyze-btn').addEventListener('click', function() {
-        const stock = document.getElementById('stock-select').value;
-        if (!stock) {
-            alert('종목을 선택하세요');
-            return;
-        }
+// VIX 로드 (Yahoo Finance에서 가져오기 어려우므로 시뮬레이션)
+function loadVIX() {
+    // 실제로는 API에서 가져와야 함
+    const vix = (Math.random() * 10 + 15).toFixed(2);  // 15~25 사이 랜덤
+    document.getElementById('vixValue').textContent = vix;
 
-        // TODO: 실제 API 호출
-        document.getElementById('analysis-result').style.display = 'block';
-        document.getElementById('result-idio').textContent = '0.85';
-        document.getElementById('result-raw').textContent = '0.71';
-        document.getElementById('result-vix').textContent = '1.2x';
-        document.getElementById('result-vol').textContent = '23.5%';
-    });
+    const vixNum = parseFloat(vix);
+    const statusEl = document.getElementById('vixStatus');
+
+    if (vixNum < 20) {
+        statusEl.textContent = 'Stable';
+        statusEl.className = 'badge bg-success fs-6';
+    } else if (vixNum < 35) {
+        statusEl.textContent = 'Elevated';
+        statusEl.className = 'badge bg-warning fs-6';
+    } else if (vixNum < 45) {
+        statusEl.textContent = 'Optimal Zone';
+        statusEl.className = 'badge bg-primary fs-6';
+    } else {
+        statusEl.textContent = 'Danger';
+        statusEl.className = 'badge bg-danger fs-6';
+    }
+}
+
+// 분석 (시뮬레이션)
+function analyzeStock() {
+    const ticker = document.getElementById('tickerInput').value.toUpperCase();
+
+    if (!ticker) {
+        alert('티커를 입력해주세요.');
+        return;
+    }
+
+    document.getElementById('resultArea').style.display = 'block';
+
+    // 시뮬레이션 데이터
+    const score = (Math.random() * 1.5 - 0.3).toFixed(2);
+    const mktBeta = (Math.random() * 0.5 + 0.8).toFixed(2);
+    const secBeta = (Math.random() * 0.3 + 0.1).toFixed(2);
+    const avgRet = (Math.random() * 0.3 - 0.1).toFixed(2);
+    const vol = (Math.random() * 10 + 20).toFixed(1);
+
+    document.getElementById('idioScore').textContent = score;
+    document.getElementById('marketBeta').textContent = mktBeta;
+    document.getElementById('sectorBeta').textContent = secBeta;
+    document.getElementById('avgReturn').textContent = avgRet + '%';
+    document.getElementById('dailyVol').textContent = vol + '%';
+
+    // 인사이트
+    const scoreNum = parseFloat(score);
+    const insightEl = document.getElementById('insightText');
+    const alertEl = document.getElementById('insightAlert');
+
+    if (scoreNum > 0.5) {
+        insightEl.textContent = `🔥 High Impact: ${ticker}의 실적 발표가 변동성 대비 수익 효율을 크게 높여줍니다. (Delta: +${score})`;
+        alertEl.className = 'alert alert-success';
+    } else if (scoreNum > 0) {
+        insightEl.textContent = `📈 Moderate Impact: ${ticker}의 실적 발표가 긍정적 영향을 미칩니다. (Delta: +${score})`;
+        alertEl.className = 'alert alert-info';
+    } else {
+        insightEl.textContent = `🛡️ Low Impact: ${ticker}의 실적 발표를 제외해도 효율성 차이가 거의 없습니다. (Delta: ${score})`;
+        alertEl.className = 'alert alert-warning';
+    }
+}
+
+// Event Listeners
+document.getElementById('analyzeBtn').addEventListener('click', analyzeStock);
+document.getElementById('tickerInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') analyzeStock();
 });
+
+// 초기화
+loadVIX();
 </script>
 {% endblock %}

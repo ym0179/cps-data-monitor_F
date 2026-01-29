@@ -1,174 +1,180 @@
 {% extends "base.html" %}
 
-{% block title %}MS Monitoring - MAS Finance{% endblock %}
+{% block title %}MS Monitoring - 고객상품전략팀{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-3 py-3">
+    <h4 class="mb-4"><i class="bi bi-bar-chart-fill text-info me-2"></i>MS Monitoring (Global Market Share)</h4>
+    <p class="text-muted mb-4">Data Source: StatCounter Global Stats</p>
 
-    <!-- 페이지 헤더 -->
-    <div class="page-header">
-        <h1 class="page-title">
-            <i class="bi bi-bar-chart-fill text-info me-2"></i>
-            MS Monitoring
-        </h1>
-        <p class="text-muted mb-0">글로벌 시장 점유율 추적</p>
-    </div>
-
-    <!-- 탭 네비게이션 -->
-    <ul class="nav nav-pills mb-4" role="tablist">
+    <!-- 탭 메뉴 -->
+    <ul class="nav nav-tabs mb-4" id="marketTabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#browser-tab">
-                <i class="bi bi-globe me-1"></i>
-                <span class="d-none d-sm-inline">브라우저</span>
+            <button class="nav-link active" id="browser-tab" data-bs-toggle="tab" data-bs-target="#browser" type="button">
+                <i class="bi bi-globe me-1"></i>Browser Market Share
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#os-tab">
-                <i class="bi bi-phone me-1"></i>
-                <span class="d-none d-sm-inline">OS</span>
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="pill" data-bs-target="#search-tab">
-                <i class="bi bi-search me-1"></i>
-                <span class="d-none d-sm-inline">검색엔진</span>
+            <button class="nav-link" id="os-tab" data-bs-toggle="tab" data-bs-target="#os" type="button">
+                <i class="bi bi-phone me-1"></i>OS Market Share
             </button>
         </li>
     </ul>
 
-    <!-- 탭 콘텐츠 -->
-    <div class="tab-content">
-
-        <!-- 브라우저 점유율 -->
-        <div class="tab-pane fade show active" id="browser-tab">
+    <div class="tab-content" id="marketTabContent">
+        <!-- Browser Tab -->
+        <div class="tab-pane fade show active" id="browser" role="tabpanel">
             <div class="card mb-4">
-                <div class="card-header bg-white">
-                    <h6 class="mb-0">브라우저 시장 점유율</h6>
-                </div>
-                <div class="card-body">
-                    <!-- 차트 영역 -->
-                    <div id="browser-chart" class="chart-placeholder">
-                        <i class="bi bi-bar-chart-line fs-1 text-muted"></i>
-                        <p class="text-muted mt-2">차트 로딩 중...</p>
-                    </div>
-
-                    <!-- 데이터 테이블 -->
-                    <div class="table-responsive mt-4">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>브라우저</th>
-                                    <th class="text-end">점유율</th>
-                                    <th class="text-end">변화</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><i class="bi bi-circle-fill text-primary me-2"></i>Chrome</td>
-                                    <td class="text-end">65.7%</td>
-                                    <td class="text-end text-success">+0.3%</td>
-                                </tr>
-                                <tr>
-                                    <td><i class="bi bi-circle-fill text-info me-2"></i>Safari</td>
-                                    <td class="text-end">18.2%</td>
-                                    <td class="text-end text-danger">-0.1%</td>
-                                </tr>
-                                <tr>
-                                    <td><i class="bi bi-circle-fill text-warning me-2"></i>Edge</td>
-                                    <td class="text-end">5.1%</td>
-                                    <td class="text-end text-success">+0.2%</td>
-                                </tr>
-                                <tr>
-                                    <td><i class="bi bi-circle-fill text-danger me-2"></i>Firefox</td>
-                                    <td class="text-end">2.8%</td>
-                                    <td class="text-end text-danger">-0.1%</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                <div class="card-header">
+                    <div class="btn-group" role="group">
+                        <input type="radio" class="btn-check" name="browserDevice" id="browserAll" value="desktop" checked>
+                        <label class="btn btn-outline-primary btn-sm" for="browserAll">Desktop</label>
+                        <input type="radio" class="btn-check" name="browserDevice" id="browserMobile" value="mobile">
+                        <label class="btn btn-outline-primary btn-sm" for="browserMobile">Mobile</label>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- OS 점유율 -->
-        <div class="tab-pane fade" id="os-tab">
-            <div class="card">
-                <div class="card-header bg-white">
-                    <h6 class="mb-0">모바일 OS 점유율 (Android vs iOS)</h6>
-                </div>
                 <div class="card-body">
-                    <div class="row g-4">
-                        <div class="col-6">
-                            <div class="text-center p-4 bg-success bg-opacity-10 rounded">
-                                <i class="bi bi-android2 fs-1 text-success"></i>
-                                <h3 class="mt-2 mb-0">71.8%</h3>
-                                <small class="text-muted">Android</small>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="text-center p-4 bg-dark bg-opacity-10 rounded">
-                                <i class="bi bi-apple fs-1"></i>
-                                <h3 class="mt-2 mb-0">27.6%</h3>
-                                <small class="text-muted">iOS</small>
-                            </div>
+                    <div id="browserChart" style="height: 400px;">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="mt-2 text-muted">Loading data...</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- 검색엔진 점유율 -->
-        <div class="tab-pane fade" id="search-tab">
-            <div class="card">
-                <div class="card-header bg-white">
-                    <h6 class="mb-0">검색엔진 시장 점유율</h6>
+        <!-- OS Tab -->
+        <div class="tab-pane fade" id="os" role="tabpanel">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <span class="fw-bold">Android vs iOS Rivalry</span>
+                    <div class="btn-group ms-3" role="group">
+                        <input type="radio" class="btn-check" name="osDevice" id="osMobile" value="mobile" checked>
+                        <label class="btn btn-outline-primary btn-sm" for="osMobile">Mobile</label>
+                        <input type="radio" class="btn-check" name="osDevice" id="osTablet" value="tablet">
+                        <label class="btn btn-outline-primary btn-sm" for="osTablet">Tablet</label>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <!-- Google vs Bing 비교 -->
-                    <div class="mb-4">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>Google</span>
-                            <span>91.4%</span>
-                        </div>
-                        <div class="progress" style="height: 24px;">
-                            <div class="progress-bar bg-primary" style="width: 91.4%"></div>
-                        </div>
-                    </div>
-                    <div class="mb-4">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>Bing</span>
-                            <span>3.5%</span>
-                        </div>
-                        <div class="progress" style="height: 24px;">
-                            <div class="progress-bar bg-info" style="width: 3.5%"></div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>Yahoo</span>
-                            <span>1.2%</span>
-                        </div>
-                        <div class="progress" style="height: 24px;">
-                            <div class="progress-bar bg-danger" style="width: 1.2%"></div>
+                    <div id="osChart" style="height: 400px;">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="mt-2 text-muted">Loading data...</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-
     </div>
-
 </div>
 
-<style>
-.chart-placeholder {
-    height: 200px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background: #f8fafc;
-    border-radius: 8px;
+<!-- Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<script>
+// Browser Chart
+function loadBrowserChart(device) {
+    fetch(`/api/statcounter/browser?device=${device}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                document.getElementById('browserChart').innerHTML = '<p class="text-danger text-center py-5">Failed to load data</p>';
+                return;
+            }
+
+            const traces = [];
+            const colors = {
+                'Chrome': '#4285F4',
+                'Safari': '#FF9500',
+                'Firefox': '#FF7139',
+                'Edge': '#0078D7',
+                'Samsung Internet': '#1428A0',
+                'Opera': '#FF1B2D'
+            };
+
+            for (const [name, values] of Object.entries(data.series)) {
+                traces.push({
+                    x: data.dates,
+                    y: values,
+                    name: name,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { width: 2, color: colors[name] || undefined },
+                    stackgroup: 'one'
+                });
+            }
+
+            const layout = {
+                title: `Browser Market Share (${device})`,
+                xaxis: { title: 'Date' },
+                yaxis: { title: 'Market Share (%)', range: [0, 100] },
+                hovermode: 'x unified',
+                legend: { orientation: 'h', y: -0.2 }
+            };
+
+            Plotly.newPlot('browserChart', traces, layout, {responsive: true});
+        })
+        .catch(err => {
+            document.getElementById('browserChart').innerHTML = '<p class="text-danger text-center py-5">Error loading data</p>';
+        });
 }
-</style>
+
+// OS Chart
+function loadOSChart(device) {
+    fetch(`/api/os-rivalry?device=${device}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                document.getElementById('osChart').innerHTML = '<p class="text-danger text-center py-5">Failed to load data</p>';
+                return;
+            }
+
+            const traces = [];
+            const colors = { 'Android': '#3DDC84', 'iOS': '#555555' };
+
+            for (const [name, values] of Object.entries(data.series)) {
+                traces.push({
+                    x: data.dates,
+                    y: values,
+                    name: name,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { width: 3, color: colors[name] }
+                });
+            }
+
+            const layout = {
+                title: `Mobile OS Market Share (${device})`,
+                xaxis: { title: 'Date' },
+                yaxis: { title: 'Market Share (%)', rangemode: 'tozero' },
+                hovermode: 'x unified',
+                legend: { orientation: 'h', y: -0.2 }
+            };
+
+            Plotly.newPlot('osChart', traces, layout, {responsive: true});
+        })
+        .catch(err => {
+            document.getElementById('osChart').innerHTML = '<p class="text-danger text-center py-5">Error loading data</p>';
+        });
+}
+
+// Event Listeners
+document.querySelectorAll('input[name="browserDevice"]').forEach(radio => {
+    radio.addEventListener('change', (e) => loadBrowserChart(e.target.value));
+});
+
+document.querySelectorAll('input[name="osDevice"]').forEach(radio => {
+    radio.addEventListener('change', (e) => loadOSChart(e.target.value));
+});
+
+// Tab change listener
+document.getElementById('os-tab').addEventListener('shown.bs.tab', () => {
+    const device = document.querySelector('input[name="osDevice"]:checked').value;
+    loadOSChart(device);
+});
+
+// Initial load
+loadBrowserChart('desktop');
+</script>
 {% endblock %}

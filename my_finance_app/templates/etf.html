@@ -1,145 +1,238 @@
 {% extends "base.html" %}
 
-{% block title %}Active ETF - MAS Finance{% endblock %}
+{% block title %}Active ETF Analysis - 고객상품전략팀{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-3 py-3">
+    <h4 class="mb-4"><i class="bi bi-pie-chart-fill text-success me-2"></i>Active ETF Daily Rebalancing</h4>
+    <p class="text-muted mb-4">TIMEFOLIO 공식 포트폴리오 분석</p>
 
-    <!-- 페이지 헤더 -->
-    <div class="page-header">
-        <h1 class="page-title">
-            <i class="bi bi-pie-chart-fill text-success me-2"></i>
-            Active ETF Analysis
-        </h1>
-        <p class="text-muted mb-0">TOP 1% 매니저 포트폴리오 추적</p>
-    </div>
-
-    <!-- 제공사 선택 -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <h6 class="mb-3">ETF 제공사 선택</h6>
-            <div class="btn-group w-100" role="group">
-                <input type="radio" class="btn-check" name="provider" id="timefolio" value="timefolio" checked>
-                <label class="btn btn-outline-primary" for="timefolio">TIMEFOLIO</label>
-
-                <input type="radio" class="btn-check" name="provider" id="kiwoom" value="kiwoom">
-                <label class="btn btn-outline-primary" for="kiwoom">KIWOOM</label>
-            </div>
+    <!-- ETF 선택 -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <label class="form-label">분류</label>
+            <select class="form-select" id="etfCategory">
+                <option value="해외주식형">해외주식형</option>
+                <option value="국내주식형">국내주식형</option>
+            </select>
         </div>
-    </div>
-
-    <!-- 날짜 선택 -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="row g-3 align-items-end">
-                <div class="col-8">
-                    <label class="form-label">분석 날짜</label>
-                    <input type="date" class="form-control" id="analysis-date">
-                </div>
-                <div class="col-4">
-                    <button class="btn btn-primary w-100" id="fetch-btn">
-                        <i class="bi bi-download"></i>
-                        <span class="d-none d-sm-inline ms-1">조회</span>
-                    </button>
-                </div>
-            </div>
+        <div class="col-md-4">
+            <label class="form-label">상품명</label>
+            <select class="form-select" id="etfName">
+            </select>
         </div>
-    </div>
-
-    <!-- 리밸런싱 요약 -->
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-md-3">
-            <div class="card text-center">
-                <div class="card-body py-3">
-                    <i class="bi bi-plus-circle text-success fs-4"></i>
-                    <h4 class="mb-0 mt-2" id="new-count">-</h4>
-                    <small class="text-muted">신규 편입</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="card text-center">
-                <div class="card-body py-3">
-                    <i class="bi bi-dash-circle text-danger fs-4"></i>
-                    <h4 class="mb-0 mt-2" id="removed-count">-</h4>
-                    <small class="text-muted">완전 편출</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="card text-center">
-                <div class="card-body py-3">
-                    <i class="bi bi-arrow-up text-primary fs-4"></i>
-                    <h4 class="mb-0 mt-2" id="increased-count">-</h4>
-                    <small class="text-muted">비중 확대</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="card text-center">
-                <div class="card-body py-3">
-                    <i class="bi bi-arrow-down text-warning fs-4"></i>
-                    <h4 class="mb-0 mt-2" id="decreased-count">-</h4>
-                    <small class="text-muted">비중 축소</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 포트폴리오 테이블 -->
-    <div class="card">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center">
-            <h6 class="mb-0"><i class="bi bi-table me-2"></i>포트폴리오 현황</h6>
-            <button class="btn btn-outline-success btn-sm" id="export-btn">
-                <i class="bi bi-file-earmark-excel me-1"></i>Excel
+        <div class="col-md-4 d-flex align-items-end">
+            <button class="btn btn-primary" id="loadBtn">
+                <i class="bi bi-search me-1"></i>포트폴리오 조회
             </button>
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-sm table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>종목명</th>
-                            <th class="text-end">비중</th>
-                            <th class="text-end">변화</th>
-                        </tr>
-                    </thead>
-                    <tbody id="portfolio-table">
-                        <tr>
-                            <td colspan="3" class="text-center text-muted py-4">
-                                날짜를 선택하고 조회하세요
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+    </div>
+
+    <!-- 결과 영역 -->
+    <div id="resultArea" style="display: none;">
+        <!-- 요약 카드 -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="text-muted">총 종목 수</h6>
+                        <h3 id="totalCount" class="text-primary">-</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="text-muted">Top 5 비중</h6>
+                        <h3 id="top5Weight" class="text-success">-</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="text-muted">최고 비중</h6>
+                        <h3 id="maxWeight" class="text-info">-</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h6 class="text-muted">평균 비중</h6>
+                        <h3 id="avgWeight" class="text-warning">-</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 차트 & 테이블 -->
+        <div class="row">
+            <div class="col-md-5">
+                <div class="card">
+                    <div class="card-header">포트폴리오 비중 (Top 10)</div>
+                    <div class="card-body">
+                        <div id="pieChart" style="height: 350px;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-7">
+                <div class="card">
+                    <div class="card-header">전체 구성종목</div>
+                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-sm table-hover" id="portfolioTable">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>#</th>
+                                    <th>종목명</th>
+                                    <th class="text-end">비중(%)</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- 로딩 -->
+    <div id="loadingArea" style="display: none;" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">데이터를 불러오는 중...</p>
+    </div>
+
+    <!-- 에러 -->
+    <div id="errorArea" style="display: none;" class="alert alert-danger">
+        데이터를 불러올 수 없습니다. 잠시 후 다시 시도해주세요.
+    </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
+<!-- Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // 오늘 날짜 기본값
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('analysis-date').value = today;
+// ETF 데이터
+const etfData = {
+    "해외주식형": {
+        "글로벌탑픽": "22", "글로벌바이오": "9", "우주테크&방산": "20",
+        "S&P500": "5", "나스닥100": "2", "글로벌AI": "6",
+        "차이나AI": "19", "미국배당다우존스": "18"
+    },
+    "국내주식형": {
+        "K신재생에너지": "16", "K바이오": "13", "Korea플러스배당": "12",
+        "코스피": "11", "코리아밸류업": "15"
+    }
+};
 
-    // 조회 버튼
-    document.getElementById('fetch-btn').addEventListener('click', function() {
-        const date = document.getElementById('analysis-date').value;
-        const provider = document.querySelector('input[name="provider"]:checked').value;
+// 상품명 업데이트
+function updateEtfNames() {
+    const category = document.getElementById('etfCategory').value;
+    const nameSelect = document.getElementById('etfName');
+    nameSelect.innerHTML = '';
 
-        // TODO: 실제 API 호출
-        console.log('Fetching:', provider, date);
+    for (const name in etfData[category]) {
+        const option = document.createElement('option');
+        option.value = etfData[category][name];
+        option.textContent = name;
+        nameSelect.appendChild(option);
+    }
+}
 
-        // 임시 데이터
-        document.getElementById('new-count').textContent = '3';
-        document.getElementById('removed-count').textContent = '1';
-        document.getElementById('increased-count').textContent = '5';
-        document.getElementById('decreased-count').textContent = '4';
+// 포트폴리오 로드
+function loadPortfolio() {
+    const idx = document.getElementById('etfName').value;
+
+    document.getElementById('loadingArea').style.display = 'block';
+    document.getElementById('resultArea').style.display = 'none';
+    document.getElementById('errorArea').style.display = 'none';
+
+    fetch(`/api/etf/portfolio/${idx}`)
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('loadingArea').style.display = 'none';
+
+            if (data.error) {
+                document.getElementById('errorArea').style.display = 'block';
+                return;
+            }
+
+            document.getElementById('resultArea').style.display = 'block';
+            renderPortfolio(data.data);
+        })
+        .catch(err => {
+            document.getElementById('loadingArea').style.display = 'none';
+            document.getElementById('errorArea').style.display = 'block';
+        });
+}
+
+// 렌더링
+function renderPortfolio(records) {
+    // 비중 숫자로 변환 & 정렬
+    records.forEach(r => {
+        r.weight = parseFloat(r['비중']) || 0;
     });
-});
+    records.sort((a, b) => b.weight - a.weight);
+
+    // 요약 통계
+    const total = records.length;
+    const weights = records.map(r => r.weight);
+    const top5 = weights.slice(0, 5).reduce((a, b) => a + b, 0);
+    const max = Math.max(...weights);
+    const avg = weights.reduce((a, b) => a + b, 0) / total;
+
+    document.getElementById('totalCount').textContent = total + '개';
+    document.getElementById('top5Weight').textContent = top5.toFixed(1) + '%';
+    document.getElementById('maxWeight').textContent = max.toFixed(1) + '%';
+    document.getElementById('avgWeight').textContent = avg.toFixed(1) + '%';
+
+    // 테이블
+    const tbody = document.querySelector('#portfolioTable tbody');
+    tbody.innerHTML = '';
+    records.forEach((r, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${i + 1}</td>
+            <td>${r['종목명'] || '-'}</td>
+            <td class="text-end">${r.weight.toFixed(2)}%</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    // 파이 차트 (Top 10 + 기타)
+    const top10 = records.slice(0, 10);
+    const othersWeight = records.slice(10).reduce((a, r) => a + r.weight, 0);
+
+    const labels = top10.map(r => r['종목명'] || 'Unknown');
+    const values = top10.map(r => r.weight);
+
+    if (othersWeight > 0) {
+        labels.push('기타');
+        values.push(othersWeight);
+    }
+
+    const pieData = [{
+        labels: labels,
+        values: values,
+        type: 'pie',
+        hole: 0.4,
+        textinfo: 'label+percent',
+        textposition: 'inside'
+    }];
+
+    const layout = {
+        showlegend: false,
+        margin: { t: 20, b: 20, l: 20, r: 20 }
+    };
+
+    Plotly.newPlot('pieChart', pieData, layout, {responsive: true});
+}
+
+// Event Listeners
+document.getElementById('etfCategory').addEventListener('change', updateEtfNames);
+document.getElementById('loadBtn').addEventListener('click', loadPortfolio);
+
+// 초기화
+updateEtfNames();
 </script>
 {% endblock %}

@@ -1,262 +1,104 @@
-/* ============================================
-   MAS Finance - Mobile-First Responsive CSS
-   ============================================ */
+/* =============================================================================
+   고객상품전략팀 Dashboard CSS
+   ============================================================================= */
 
 :root {
-    --primary-color: #2563eb;
-    --primary-light: #3b82f6;
-    --success-color: #dc2626;   /* 상승 = 빨강 (한국식) */
-    --danger-color: #2563eb;    /* 하락 = 파랑 (한국식) */
-    --bg-color: #f8fafc;
-    --card-bg: #ffffff;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --border-color: #e2e8f0;
-    --bottom-nav-height: 60px;
+    --primary-color: #0066cc;
+    --secondary-color: #6c757d;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #17a2b8;
+    --light-bg: #f8f9fa;
+    --border-color: #dee2e6;
 }
 
+/* Reset */
 * {
+    margin: 0;
+    padding: 0;
     box-sizing: border-box;
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-primary);
-    padding-bottom: calc(var(--bottom-nav-height) + 20px); /* 하단 네비 공간 */
-    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: #f5f7fa;
+    padding-bottom: 70px; /* 하단 네비게이션 공간 */
 }
 
-/* 데스크톱에서는 하단 네비 없음 */
-@media (min-width: 768px) {
-    body {
-        padding-bottom: 20px;
-    }
-}
-
-/* ============================================
-   헤더
-   ============================================ */
+/* Header */
 .header {
-    background: var(--card-bg);
+    background: white;
     border-bottom: 1px solid var(--border-color);
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 1000;
 }
 
 .logo {
     text-decoration: none;
-    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .logo-text {
     font-size: 1.25rem;
     font-weight: 700;
-}
-
-.logo-subtitle {
-    color: var(--text-secondary);
-    font-size: 0.75rem;
-    margin-left: 8px;
-}
-
-/* ============================================
-   검색창
-   ============================================ */
-.search-box {
-    position: relative;
-}
-
-.search-input {
-    border-radius: 12px;
-    padding: 12px 50px 12px 16px;
-    border: 1px solid var(--border-color);
-    background: var(--card-bg);
-    font-size: 1rem;
-}
-
-.search-input:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-.search-btn {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    font-size: 1.25rem;
-}
-
-/* ============================================
-   프로모션 카드
-   ============================================ */
-.promo-card {
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-    border: none;
-    border-radius: 16px;
-    position: relative;
-    overflow: hidden;
-}
-
-.promo-card .card-body {
-    padding: 20px;
-}
-
-.promo-card .card-title {
-    font-weight: 700;
-    color: var(--text-primary);
-}
-
-.promo-icon {
-    font-size: 3rem;
     color: var(--primary-color);
-    opacity: 0.8;
 }
 
-.promo-close {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    font-size: 0.75rem;
+/* Main Content */
+.main-content {
+    min-height: calc(100vh - 120px);
 }
 
-/* ============================================
-   뉴스 알림
-   ============================================ */
-.news-alert {
-    background: var(--card-bg);
-    border-radius: 12px;
-    padding: 12px 16px;
-    border-left: 4px solid var(--primary-color);
-}
-
-/* ============================================
-   시장 지수 카드
-   ============================================ */
-.market-indices {
-    background: var(--card-bg);
-    border-radius: 16px;
-    padding: 16px;
-}
-
-.index-card {
-    background: var(--bg-color);
-    border-radius: 12px;
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.index-name {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-}
-
-.index-value {
-    font-size: 1.1rem;
-    font-weight: 700;
-}
-
-.index-change {
-    font-size: 0.75rem;
-    font-weight: 500;
-}
-
-.index-card.up .index-change {
-    color: var(--success-color);
-}
-
-.index-card.down .index-change {
-    color: var(--danger-color);
-}
-
-/* 데스크톱에서 더 크게 */
-@media (min-width: 768px) {
-    .index-card {
-        padding: 16px;
-    }
-    .index-value {
-        font-size: 1.25rem;
-    }
-}
-
-/* ============================================
-   마켓 스코어 카드
-   ============================================ */
-.market-score-card {
+/* Cards */
+.card {
     border: none;
-    border-radius: 16px;
-    background: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.score-value {
-    color: var(--primary-color);
-    font-size: 1.25rem;
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.score-status {
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.875rem;
+.card-header {
+    background: white;
+    border-bottom: 1px solid var(--border-color);
     font-weight: 600;
 }
 
-.score-status.warning {
-    background: #fef3c7;
-    color: #d97706;
-}
-
-.score-status.good {
-    background: #d1fae5;
-    color: #059669;
-}
-
-.score-status.danger {
-    background: #fee2e2;
-    color: #dc2626;
-}
-
-/* ============================================
-   기능 카드 (데스크톱)
-   ============================================ */
+/* Feature Cards */
 .feature-card {
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    transition: all 0.2s ease;
+    text-align: center;
+    padding: 1.5rem;
 }
 
 .feature-card:hover {
-    border-color: var(--primary-color);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
+    background-color: var(--light-bg);
 }
 
 .feature-icon {
     font-size: 2.5rem;
+    margin-bottom: 0.5rem;
 }
 
-/* ============================================
-   하단 네비게이션 (모바일)
-   ============================================ */
+/* Bottom Navigation */
 .bottom-nav {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    height: var(--bottom-nav-height);
-    background: var(--card-bg);
+    background: white;
     border-top: 1px solid var(--border-color);
     display: flex;
     justify-content: space-around;
-    align-items: center;
+    padding: 8px 0;
     z-index: 1000;
-    padding-bottom: env(safe-area-inset-bottom); /* iPhone 노치 대응 */
 }
 
 .bottom-nav-item {
@@ -264,10 +106,9 @@ body {
     flex-direction: column;
     align-items: center;
     text-decoration: none;
-    color: var(--text-secondary);
-    font-size: 0.7rem;
-    padding: 8px 12px;
-    transition: color 0.2s;
+    color: var(--secondary-color);
+    font-size: 0.75rem;
+    padding: 4px 12px;
 }
 
 .bottom-nav-item i {
@@ -279,63 +120,123 @@ body {
     color: var(--primary-color);
 }
 
-.bottom-nav-item:hover {
+/* Index Cards */
+.index-card {
+    background: white;
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+}
+
+.index-card.up .index-change {
+    color: var(--danger-color);
+}
+
+.index-card.down .index-change {
     color: var(--primary-color);
 }
 
-/* ============================================
-   페이지 공통
-   ============================================ */
-.page-header {
-    padding: 20px 0;
-    margin-bottom: 20px;
-    border-bottom: 1px solid var(--border-color);
+.index-name {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--secondary-color);
 }
 
-.page-title {
-    font-size: 1.5rem;
+.index-value {
+    display: block;
+    font-size: 1.1rem;
     font-weight: 700;
-    margin: 0;
 }
 
-.card {
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
+.index-change {
+    display: block;
+    font-size: 0.75rem;
 }
 
-/* ============================================
-   반응형 조정
-   ============================================ */
+/* Tables */
+.table {
+    margin-bottom: 0;
+}
 
-/* 태블릿 */
-@media (min-width: 768px) {
-    .container-fluid {
-        max-width: 960px;
-        margin: 0 auto;
+.table th {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.table td {
+    font-size: 0.875rem;
+    vertical-align: middle;
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+/* Forms */
+.form-control, .form-select {
+    border-radius: 8px;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(0, 102, 204, 0.25);
+}
+
+/* Badges */
+.badge {
+    font-weight: 500;
+    padding: 0.5em 0.75em;
+}
+
+/* Alerts */
+.alert {
+    border-radius: 8px;
+    border: none;
+}
+
+/* Tabs */
+.nav-tabs .nav-link {
+    border: none;
+    color: var(--secondary-color);
+    font-weight: 500;
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--primary-color);
+    background: transparent;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .main-content {
+        padding-bottom: 80px;
+    }
+
+    .card {
+        margin-bottom: 1rem;
+    }
+
+    .feature-icon {
+        font-size: 2rem;
     }
 }
 
-/* 데스크톱 */
-@media (min-width: 1200px) {
-    .container-fluid {
-        max-width: 1140px;
-    }
+/* Loading Spinner */
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
 }
 
-/* ============================================
-   다크모드 (추후 확장용)
-   ============================================ */
-@media (prefers-color-scheme: dark) {
-    /* 나중에 다크모드 스타일 추가 */
-}
-
-/* ============================================
-   유틸리티
-   ============================================ */
-.text-up {
-    color: var(--success-color) !important;
-}
-
-.text-down {
-    color: var(--danger-color) !important;
+/* Charts */
+.chart-container {
+    position: relative;
+    height: 400px;
 }
