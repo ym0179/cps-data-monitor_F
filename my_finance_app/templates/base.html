@@ -66,7 +66,29 @@
                     <a class="nav-link" href="/etf"><i class="bi bi-pie-chart me-2"></i>Active ETF</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/market"><i class="bi bi-bar-chart me-2"></i>MS Monitoring</a>
+                    <a class="nav-link" data-bs-toggle="collapse" href="#marketDataMenu" role="button">
+                        <i class="bi bi-bar-chart me-2"></i>Market Data
+                        <i class="bi bi-chevron-down float-end"></i>
+                    </a>
+                    <div class="collapse" id="marketDataMenu">
+                        <ul class="nav flex-column ms-3">
+                            <li class="nav-item">
+                                <a class="nav-link py-1" href="/market/search-engine">
+                                    <i class="bi bi-search me-2"></i>Search Engine M/S
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link py-1" href="/market">
+                                    <i class="bi bi-globe me-2"></i>Browser M/S
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link py-1" href="/market">
+                                    <i class="bi bi-phone me-2"></i>OS M/S
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </li>
             </ul>
             <hr>

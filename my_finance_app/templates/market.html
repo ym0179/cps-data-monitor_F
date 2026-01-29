@@ -1,11 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}MS Monitoring - 고객상품전략팀{% endblock %}
+{% block title %}Market Data - 고객상품전략팀{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-3 py-3">
-    <h4 class="mb-4"><i class="bi bi-bar-chart-fill text-info me-2"></i>MS Monitoring (Global Market Share)</h4>
-    <p class="text-muted mb-4">Data Source: StatCounter Global Stats</p>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="mb-1"><i class="bi bi-bar-chart-fill text-info me-2"></i>Market Data (Global Market Share)</h4>
+            <p class="text-muted mb-0">Data Source: StatCounter Global Stats</p>
+        </div>
+        <a href="/market/search-engine" class="btn btn-success btn-sm">
+            <i class="bi bi-search me-1"></i>Search Engine M/S
+        </a>
+    </div>
 
     <!-- 탭 메뉴 -->
     <ul class="nav nav-tabs mb-4" id="marketTabs" role="tablist">
@@ -93,10 +100,28 @@ function loadBrowserChart(device) {
                 'Opera': '#FF1B2D'
             };
 
+            // 유효한 날짜 범위 찾기 (모든 시리즈에 데이터가 있는 범위)
+            let maxValidIndex = data.dates.length - 1;
             for (const [name, values] of Object.entries(data.series)) {
+                for (let i = values.length - 1; i >= 0; i--) {
+                    if (values[i] !== null && values[i] !== undefined && !isNaN(values[i])) {
+                        if (i < maxValidIndex) maxValidIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            // 유효한 데이터만 사용
+            const validDates = data.dates.slice(0, maxValidIndex + 1);
+
+            for (const [name, values] of Object.entries(data.series)) {
+                const validValues = values.slice(0, maxValidIndex + 1).map(v =>
+                    (v !== null && v !== undefined && !isNaN(v)) ? v : 0
+                );
+
                 traces.push({
-                    x: data.dates,
-                    y: values,
+                    x: validDates,
+                    y: validValues,
                     name: name,
                     type: 'scatter',
                     mode: 'lines',
@@ -134,20 +159,31 @@ function loadOSChart(device) {
             const colors = { 'Android': '#3DDC84', 'iOS': '#555555' };
 
             for (const [name, values] of Object.entries(data.series)) {
+                // null/NaN 값을 필터링하고 유효한 데이터만 사용
+                const validData = [];
+                const validDates = [];
+                for (let i = 0; i < values.length; i++) {
+                    if (values[i] !== null && values[i] !== undefined && !isNaN(values[i]) && values[i] > 0) {
+                        validData.push(values[i]);
+                        validDates.push(data.dates[i]);
+                    }
+                }
+
                 traces.push({
-                    x: data.dates,
-                    y: values,
+                    x: validDates,
+                    y: validData,
                     name: name,
                     type: 'scatter',
                     mode: 'lines',
-                    line: { width: 3, color: colors[name] }
+                    line: { width: 3, color: colors[name] },
+                    connectgaps: false  // null 값에서 선 끊기
                 });
             }
 
             const layout = {
                 title: `Mobile OS Market Share (${device})`,
                 xaxis: { title: 'Date' },
-                yaxis: { title: 'Market Share (%)', rangemode: 'tozero' },
+                yaxis: { title: 'Market Share (%)', range: [0, 100] },
                 hovermode: 'x unified',
                 legend: { orientation: 'h', y: -0.2 }
             };
