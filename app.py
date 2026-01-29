@@ -535,30 +535,33 @@ with st.sidebar:
 if menu == "📈 MS Monitoring":
     st.header("📈 MS Monitoring (Global Market Share)")
     st.caption("Data Source: StatCounter Global Stats")
-    
-    # 메인 탭 분리: 검색엔진 vs 모바일 OS
-    main_tab1, main_tab2 = st.tabs(["🔍 Browser Market Share ", "📱 Operating System Market Share"])
-    
+
+    # 메인 탭 분리: 검색엔진 vs OS Market Share
+    main_tab1, main_tab2 = st.tabs(["🔍 Search Engine M/S", "📱 OS Market Share"])
+
     # [Tab 1] 검색엔진 (기존 기능)
     with main_tab1:
-        st.subheader("Global Browser Market Share")
+        st.subheader("Search Engine Market Share")
         st.caption("Google vs Bing vs Yahoo vs Other")
-        
+
         sub_tab1, sub_tab2, sub_tab3 = st.tabs(["🖥️+📱 Desktop & Mobile", "🖥️ Desktop", "📱 Mobile"])
         
         # 1. Desktop + Mobile (Combined)
         with sub_tab1:
             df = fetch_statcounter_data("search_engine", device="desktop+mobile")
             df_proc = process_search_engine_data(df)
-            
+
             if not df_proc.empty:
                 # 막대 차트 (Stacked Bar)
-                fig = px.bar(df_proc, title="Search Engine M/S (Total)", barmode='stack', 
+                fig = px.bar(df_proc, title="Search Engine M/S (Total)", barmode='stack',
                              color_discrete_map={'Google': '#4285F4', 'Bing': '#00A4EF', 'Yahoo': '#7B0099', 'Other': '#999999'})
-                
+
                 # Y축 스케일 조정 (0~100 고정)
                 fig.update_layout(yaxis_range=[0, 100], legend=dict(orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5))
-                
+
+                # 툴팁에 소수점 두자리 표시
+                fig.update_traces(hovertemplate='%{fullData.name}<br>%{x}<br>%{y:.2f}%<extra></extra>')
+
                 st.plotly_chart(fig, use_container_width=True)
                 st.dataframe(df_proc.sort_index(ascending=False).style.format("{:.1f}%").background_gradient(cmap="Reds", subset=["Google"]), use_container_width=True)
 
@@ -566,13 +569,16 @@ if menu == "📈 MS Monitoring":
         with sub_tab2:
             df = fetch_statcounter_data("search_engine", device="desktop")
             df_proc = process_search_engine_data(df)
-            
+
             if not df_proc.empty:
                 fig = px.bar(df_proc, title="Search Engine M/S (Desktop)", barmode='stack',
                              color_discrete_map={'Google': '#4285F4', 'Bing': '#00A4EF', 'Yahoo': '#7B0099', 'Other': '#999999'})
-                
+
                 # Y축 스케일 조정 (0~100 고정)
                 fig.update_layout(yaxis_range=[0, 100], legend=dict(orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5))
+
+                # 툴팁에 소수점 두자리 표시
+                fig.update_traces(hovertemplate='%{fullData.name}<br>%{x}<br>%{y:.2f}%<extra></extra>')
 
                 st.plotly_chart(fig, use_container_width=True)
                 st.dataframe(df_proc.sort_index(ascending=False).style.format("{:.1f}%").background_gradient(cmap="Reds", subset=["Google"]), use_container_width=True)
@@ -581,21 +587,24 @@ if menu == "📈 MS Monitoring":
         with sub_tab3:
             df = fetch_statcounter_data("search_engine", device="mobile")
             df_proc = process_search_engine_data(df)
-            
+
             if not df_proc.empty:
                 fig = px.bar(df_proc, title="Search Engine M/S (Mobile)", barmode='stack',
                              color_discrete_map={'Google': '#4285F4', 'Bing': '#00A4EF', 'Yahoo': '#7B0099', 'Other': '#999999'})
-                
+
                 # Y축 스케일 조정 (0~100 고정)
                 fig.update_layout(yaxis_range=[0, 100], legend=dict(orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5))
+
+                # 툴팁에 소수점 두자리 표시
+                fig.update_traces(hovertemplate='%{fullData.name}<br>%{x}<br>%{y:.2f}%<extra></extra>')
 
                 st.plotly_chart(fig, use_container_width=True)
                 st.dataframe(df_proc.sort_index(ascending=False).style.format("{:.1f}%").background_gradient(cmap="Reds", subset=["Google"]), use_container_width=True)
 
-    # [Tab 2] OS Rivalry (New Feature)
+    # [Tab 2] OS Market Share
     with main_tab2:
-        st.subheader("📱 Mobile & Tablet OS Rivalry (Android vs iOS)")
-        st.caption("Which ecosystem is winning? (Data since 2009)")
+        st.subheader("📱 OS Market Share")
+        st.caption("Mobile & Tablet OS Market Share (Data since 2009)")
         
         # 컨트롤 패널
         c1, c2 = st.columns([1, 1])
