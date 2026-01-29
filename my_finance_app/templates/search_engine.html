@@ -290,9 +290,21 @@ function createTable(containerId, data, suffix) {
     container.innerHTML = html;
 }
 
+// 로딩 스피너 제거
+function clearLoading(containerId) {
+    const container = document.getElementById(containerId);
+    if (container) {
+        container.innerHTML = '';
+    }
+}
+
 // 스택형 막대 차트 생성 (이미지와 동일한 스타일)
 function createStackedBarChart(containerId, data) {
     const container = document.getElementById(containerId);
+
+    // 먼저 로딩 스피너 제거
+    container.innerHTML = '';
+
     if (!data || !data.dates || data.dates.length === 0) {
         container.innerHTML = '<p class="text-muted text-center py-5">No data available</p>';
         return;
@@ -347,15 +359,20 @@ function createStackedBarChart(containerId, data) {
 function renderAll(data) {
     if (!data) return;
 
+    // 먼저 모든 로딩 스피너 제거
+    ['chartDesktopMobile', 'chartDesktop', 'chartMobile'].forEach(clearLoading);
+
     // 테이블 생성
     createTable('tableDesktopMobile', data.desktop_mobile, 'Desktop+Mobile');
     createTable('tableDesktop', data.desktop, 'Desktop');
     createTable('tableMobile', data.mobile, 'Mobile');
 
-    // 차트 생성
-    createStackedBarChart('chartDesktopMobile', data.desktop_mobile);
-    createStackedBarChart('chartDesktop', data.desktop);
-    createStackedBarChart('chartMobile', data.mobile);
+    // 차트 생성 (약간 지연 후 렌더링하여 DOM 업데이트 보장)
+    setTimeout(() => {
+        createStackedBarChart('chartDesktopMobile', data.desktop_mobile);
+        createStackedBarChart('chartDesktop', data.desktop);
+        createStackedBarChart('chartMobile', data.mobile);
+    }, 50);
 }
 
 // 필터 적용

@@ -129,6 +129,7 @@ def update_search_engine_cache():
     print(f"[{datetime.now()}] Search Engine 캐시 갱신 시작...")
 
     result = {}
+    START_DATE = "2019-01"  # 2019년 1월부터 데이터만 사용
 
     for device_key, device_val in [('desktop_mobile', 'desktop-mobile'), ('desktop', 'desktop'), ('mobile', 'mobile')]:
         print(f"  - {device_key} 데이터 수집 중...")
@@ -138,12 +139,15 @@ def update_search_engine_cache():
             df_processed = process_search_engine_data(df)
             df_processed = df_processed.sort_index()
 
+            # 2019-01 이후 데이터만 필터링 (API가 from_year를 무시할 수 있음)
+            df_processed = df_processed[df_processed.index >= START_DATE]
+
             data = {'dates': df_processed.index.tolist()}
             for col in df_processed.columns:
                 values = df_processed[col].tolist()
                 data[col] = [round(v, 2) if pd.notna(v) else None for v in values]
             result[device_key] = data
-            print(f"    완료: {len(df_processed)}개월 데이터")
+            print(f"    완료: {len(df_processed)}개월 데이터 (2019-01 이후)")
         else:
             result[device_key] = {'dates': [], 'error': 'No data'}
             print(f"    실패: 데이터 없음")
