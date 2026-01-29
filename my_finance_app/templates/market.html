@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}MS Monitoring - 고객상품전략팀{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 py-3">
+    <h4 class="mb-4"><i class="bi bi-bar-chart-fill text-info me-2"></i>MS Monitoring (Global Market Share)</h4>
+    <p class="text-muted mb-4">Data Source: StatCounter Global Stats</p>
+
+    <!-- 탭 메뉴 -->
+    <ul class="nav nav-tabs mb-4" id="marketTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="browser-tab" data-bs-toggle="tab" data-bs-target="#browser" type="button">
+                <i class="bi bi-globe me-1"></i>Browser Market Share
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="os-tab" data-bs-toggle="tab" data-bs-target="#os" type="button">
+                <i class="bi bi-phone me-1"></i>OS Market Share
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="marketTabContent">
+        <!-- Browser Tab -->
+        <div class="tab-pane fade show active" id="browser" role="tabpanel">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <div class="btn-group" role="group">
+                        <input type="radio" class="btn-check" name="browserDevice" id="browserAll" value="desktop" checked>
+                        <label class="btn btn-outline-primary btn-sm" for="browserAll">Desktop</label>
+                        <input type="radio" class="btn-check" name="browserDevice" id="browserMobile" value="mobile">
+                        <label class="btn btn-outline-primary btn-sm" for="browserMobile">Mobile</label>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="browserChart" style="height: 400px;">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="mt-2 text-muted">Loading data...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- OS Tab -->
+        <div class="tab-pane fade" id="os" role="tabpanel">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <span class="fw-bold">Android vs iOS Rivalry</span>
+                    <div class="btn-group ms-3" role="group">
+                        <input type="radio" class="btn-check" name="osDevice" id="osMobile" value="mobile" checked>
+                        <label class="btn btn-outline-primary btn-sm" for="osMobile">Mobile</label>
+                        <input type="radio" class="btn-check" name="osDevice" id="osTablet" value="tablet">
+                        <label class="btn btn-outline-primary btn-sm" for="osTablet">Tablet</label>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="osChart" style="height: 400px;">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="mt-2 text-muted">Loading data...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<script>
+// Browser Chart
+function loadBrowserChart(device) {
+    fetch(`/api/statcounter/browser?device=${device}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                document.getElementById('browserChart').innerHTML = '<p class="text-danger text-center py-5">Failed to load data</p>';
+                return;
+            }
+
+            const traces = [];
+            const colors = {
+                'Chrome': '#4285F4',
+                'Safari': '#FF9500',
+                'Firefox': '#FF7139',
+                'Edge': '#0078D7',
+                'Samsung Internet': '#1428A0',
+                'Opera': '#FF1B2D'
+            };
+
+            for (const [name, values] of Object.entries(data.series)) {
+                traces.push({
+                    x: data.dates,
+                    y: values,
+                    name: name,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { width: 2, color: colors[name] || undefined },
+                    stackgroup: 'one'
+                });
+            }
+
+            const layout = {
+                title: `Browser Market Share (${device})`,
+                xaxis: { title: 'Date' },
+                yaxis: { title: 'Market Share (%)', range: [0, 100] },
+                hovermode: 'x unified',
+                legend: { orientation: 'h', y: -0.2 }
+            };
+
+            Plotly.newPlot('browserChart', traces, layout, {responsive: true});
+        })
+        .catch(err => {
+            document.getElementById('browserChart').innerHTML = '<p class="text-danger text-center py-5">Error loading data</p>';
+        });
+}
+
+// OS Chart
+function loadOSChart(device) {
+    fetch(`/api/os-rivalry?device=${device}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                document.getElementById('osChart').innerHTML = '<p class="text-danger text-center py-5">Failed to load data</p>';
+                return;
+            }
+
+            const traces = [];
+            const colors = { 'Android': '#3DDC84', 'iOS': '#555555' };
+
+            for (const [name, values] of Object.entries(data.series)) {
+                traces.push({
+                    x: data.dates,
+                    y: values,
+                    name: name,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { width: 3, color: colors[name] }
+                });
+            }
+
+            const layout = {
+                title: `Mobile OS Market Share (${device})`,
+                xaxis: { title: 'Date' },
+                yaxis: { title: 'Market Share (%)', rangemode: 'tozero' },
+                hovermode: 'x unified',
+                legend: { orientation: 'h', y: -0.2 }
+            };
+
+            Plotly.newPlot('osChart', traces, layout, {responsive: true});
+        })
+        .catch(err => {
+            document.getElementById('osChart').innerHTML = '<p class="text-danger text-center py-5">Error loading data</p>';
+        });
+}
+
+// Event Listeners
+document.querySelectorAll('input[name="browserDevice"]').forEach(radio => {
+    radio.addEventListener('change', (e) => loadBrowserChart(e.target.value));
+});
+
+document.querySelectorAll('input[name="osDevice"]').forEach(radio => {
+    radio.addEventListener('change', (e) => loadOSChart(e.target.value));
+});
+
+// Tab change listener
+document.getElementById('os-tab').addEventListener('shown.bs.tab', () => {
+    const device = document.querySelector('input[name="osDevice"]:checked').value;
+    loadOSChart(device);
+});
+
+// Initial load
+loadBrowserChart('desktop');
+</script>
+{% endblock %}
