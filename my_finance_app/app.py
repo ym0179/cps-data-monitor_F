@@ -1113,6 +1113,9 @@ def api_earnings_calendar():
         ...
     ]
     """
+    import pytz
+    from datetime import datetime
+
     date_str = request.args.get('date', None)
     days = int(request.args.get('days', 7))
 
@@ -1123,17 +1126,35 @@ def api_earnings_calendar():
         if df_calendar.empty:
             return jsonify([])
 
-        # 2. Enrich with analyst data and earnings metrics
+        # 2. Filter to show only current date onwards (Korean timezone)
+        kst = pytz.timezone('Asia/Seoul')
+        now_kst = datetime.now(kst)
+        today_kst = now_kst.date().strftime('%Y-%m-%d')
+
+        df_calendar = df_calendar[df_calendar['Date'] >= today_kst]
+
+        if df_calendar.empty:
+            return jsonify([])
+
+        # 3. Enrich with analyst data and earnings metrics
         enriched_data = []
 
         for _, row in df_calendar.iterrows():
             ticker = row['Symbol']
 
-            # Analyst data
-            analyst_data = fetch_analyst_consensus(ticker)
+            # Analyst data (with error handling)
+            analyst_data = {'recommendKey': None, 'analystCount': 0}
+            try:
+                analyst_data = fetch_analyst_consensus(ticker)
+            except Exception:
+                pass
 
-            # Earnings metrics (3-year avg move and volatility)
-            earnings_metrics = calculate_earnings_metrics(ticker, years=3)
+            # Earnings metrics (3-year avg move and volatility, with error handling)
+            earnings_metrics = {'avg_move': None, 'volatility': None, 'num_earnings': 0}
+            try:
+                earnings_metrics = calculate_earnings_metrics(ticker, years=3)
+            except Exception:
+                pass
 
             # Trade Alert
             trade_alert = calculate_trade_alert(

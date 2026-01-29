@@ -58,6 +58,12 @@
     .earnings-table td {
         padding: 0.75rem;
         vertical-align: middle;
+        color: #374151;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    .earnings-table td small {
+        color: #6b7280;
     }
 
     .badge-score {
@@ -371,23 +377,23 @@ function renderEarningsTable(data) {
         }
 
         // Format values
-        const avgMove = item.AvgMove !== null && item.AvgMove !== undefined ? item.AvgMove.toFixed(2) : '-';
-        const volatility = item.Volatility !== null && item.Volatility !== undefined ? item.Volatility.toFixed(2) : '-';
+        const avgMove = item.AvgMove !== null && item.AvgMove !== undefined ? item.AvgMove.toFixed(2) + '%' : '-';
+        const volatility = item.Volatility !== null && item.Volatility !== undefined ? item.Volatility.toFixed(2) + '%' : '-';
         const epsEstimate = item.EPSEstimate || '-';
         const marketCap = item.MarketCap || '-';
         const analystCount = item.AnalystCount || '-';
 
         row.innerHTML = `
-            <td><span class="font-mono fw-bold">${item.Symbol}</span></td>
-            <td><small>${item.Company}</small></td>
-            <td><small class="text-muted">${item.Date}</small></td>
-            <td><span class="badge ${item.CallTime === '장전' ? 'bg-warning' : 'bg-info'}">${item.CallTime}</span></td>
+            <td><span class="fw-bold" style="font-family: 'Monaco', 'Courier New', monospace;">${item.Symbol}</span></td>
+            <td>${item.Company}</td>
+            <td>${item.Date}</td>
+            <td><span class="badge ${item.CallTime === '장전' ? 'bg-warning text-dark' : 'bg-info text-dark'}">${item.CallTime}</span></td>
             <td class="text-end">${epsEstimate}</td>
-            <td><small>${marketCap}</small></td>
+            <td>${marketCap}</td>
             <td><span class="badge ${ratingBadgeClass}">${ratingText}</span></td>
             <td class="text-center">${analystCount}</td>
-            <td class="text-end fw-bold">${avgMove}%</td>
-            <td class="text-end">${volatility}%</td>
+            <td class="text-end">${avgMove}</td>
+            <td class="text-end">${volatility}</td>
             <td>${tradeAlertHTML}</td>
         `;
 

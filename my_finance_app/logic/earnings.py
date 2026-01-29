@@ -104,7 +104,7 @@ def convert_call_time_to_korean(call_time):
     Convert Yahoo Finance Call Time to Korean
 
     Args:
-        call_time: 'After market close' (AMC) or 'Time after start' (TAS) or abbreviation
+        call_time: 'After market close' (AMC) or 'Before market open' (BMO) or abbreviation
 
     Returns:
         Korean string: '장후' or '장전'
@@ -113,7 +113,7 @@ def convert_call_time_to_korean(call_time):
 
     if 'amc' in ct_lower or 'after' in ct_lower:
         return '장후'
-    elif 'tas' in ct_lower or 'before' in ct_lower or 'pre' in ct_lower:
+    elif 'bmo' in ct_lower or 'tas' in ct_lower or 'before' in ct_lower or 'pre' in ct_lower:
         return '장전'
     else:
         return call_time  # Return original if unknown
