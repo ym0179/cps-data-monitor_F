@@ -701,11 +701,16 @@ def api_search_engine_all():
 
     # 캐시 파일이 없으면 API 직접 호출 (fallback)
     result = {}
+    START_DATE = "2019-01"  # 2019년 1월부터 데이터만 사용
+
     for device_key, device_val in [('desktop_mobile', 'desktop-mobile'), ('desktop', 'desktop'), ('mobile', 'mobile')]:
         df = fetch_statcounter_data(metric="search_engine", device=device_val, from_year="2019")
         if not df.empty:
             df_processed = process_search_engine_data(df)
             df_processed = df_processed.sort_index()
+
+            # 2019-01 이후 데이터만 필터링 (API가 from_year를 무시할 수 있음)
+            df_processed = df_processed[df_processed.index >= START_DATE]
 
             data = {'dates': df_processed.index.tolist()}
             for col in df_processed.columns:
