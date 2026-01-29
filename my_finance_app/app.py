@@ -98,8 +98,11 @@ def fetch_statcounter_data(metric="browser", device="desktop", from_year="2019",
     stat_type_map = {
         "browser": "browser",           # 브라우저
         "search_engine": "search_engine", # 검색엔진
-        "os": "os_combined"              # 운영체제
+        "os": "os"                       # 운영체제 (os_combined가 아님)
     }
+
+    # from_month를 2자리로 보장
+    from_month = str(from_month).zfill(2)
 
     params = {
         "device_hidden": device,         # 디바이스 종류
@@ -107,7 +110,7 @@ def fetch_statcounter_data(metric="browser", device="desktop", from_year="2019",
         "statType_hidden": stat_type_map.get(metric, "browser"),
         "region_hidden": "ww",           # Worldwide (전세계)
         "granularity": "monthly",        # 월별 데이터
-        "fromInt": f"{from_year}{from_month}",  # 시작 년월
+        "fromInt": f"{from_year}{from_month}",  # 시작 년월 (예: 201901)
         "toInt": f"{to_year}{to_month:02d}",    # 종료 년월
         "csv": "1"                       # CSV 형식으로 반환
     }
@@ -121,8 +124,22 @@ def fetch_statcounter_data(metric="browser", device="desktop", from_year="2019",
         if response.status_code == 200:
             # CSV 텍스트를 DataFrame으로 변환
             df = pd.read_csv(io.StringIO(response.text))
+
+            # Date 컬럼이 있는지 확인
+            if 'Date' not in df.columns:
+                print(f"StatCounter API Error: No 'Date' column in response")
+                return pd.DataFrame()
+
             # 날짜 포맷 변환: YYYY-MM
-            df['Date'] = pd.to_datetime(df['Date']).dt.strftime('%Y-%m')
+            df['Date'] = pd.to_datetime(df['Date'], errors='coerce').dt.strftime('%Y-%m')
+
+            # NaT (잘못된 날짜) 제거
+            df = df[df['Date'] != 'NaT']
+
+            # 2019년 이전 데이터 필터링 (혹시 모를 경우 대비)
+            if metric == "os" and from_year == "2019":
+                df = df[df['Date'] >= '2019-01']
+
             df.set_index('Date', inplace=True)
             return df
     except Exception as e:
@@ -571,7 +588,7 @@ def api_os_rivalry():
     Endpoint: GET /api/os-rivalry?device={device}
 
     Parameters:
-    - device: "mobile" | "tablet" (default: "mobile")
+    - device: "mobile" | "tablet" | "mobile+tablet" (default: "mobile")
 
     Response: Android, iOS만 필터링하여 반환
     """

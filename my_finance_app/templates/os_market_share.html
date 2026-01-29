@@ -108,7 +108,7 @@
 
     <!-- 차트 섹션 (위에 배치) -->
     <div class="row g-3 mb-4">
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card h-100">
                 <div class="card-header py-2">
                     <small class="fw-bold">OS Market Share (%, Mobile)</small>
@@ -120,13 +120,25 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card h-100">
                 <div class="card-header py-2">
                     <small class="fw-bold">OS Market Share (%, Tablet)</small>
                 </div>
                 <div class="card-body p-2">
                     <div id="chartTablet" class="chart-container">
+                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header py-2">
+                    <small class="fw-bold">OS Market Share (%, Mobile+Tablet)</small>
+                </div>
+                <div class="card-body p-2">
+                    <div id="chartCombined" class="chart-container">
                         <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
                     </div>
                 </div>
@@ -150,6 +162,9 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="tab-tablet" data-bs-toggle="tab" data-bs-target="#table-tablet" type="button">Tablet</button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-combined" data-bs-toggle="tab" data-bs-target="#table-combined" type="button">Mobile+Tablet</button>
+                </li>
             </ul>
             <div class="tab-content">
                 <div class="tab-pane fade show active" id="table-mobile">
@@ -159,6 +174,11 @@
                 </div>
                 <div class="tab-pane fade" id="table-tablet">
                     <div id="tableTablet" class="data-table">
+                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="table-combined">
+                    <div id="tableCombined" class="data-table">
                         <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
                     </div>
                 </div>
@@ -173,6 +193,7 @@
 <script>
 let rawDataMobile = null;
 let rawDataTablet = null;
+let rawDataCombined = null;
 let currentFilterFrom = null;
 let currentFilterTo = null;
 
@@ -180,10 +201,12 @@ let currentFilterTo = null;
 function loadAllData() {
     Promise.all([
         fetch('/api/os-rivalry?device=mobile').then(res => res.json()),
-        fetch('/api/os-rivalry?device=tablet').then(res => res.json())
-    ]).then(([mobile, tablet]) => {
+        fetch('/api/os-rivalry?device=tablet').then(res => res.json()),
+        fetch('/api/os-rivalry?device=mobile+tablet').then(res => res.json())
+    ]).then(([mobile, tablet, combined]) => {
         rawDataMobile = mobile;
         rawDataTablet = tablet;
+        rawDataCombined = combined;
 
         // 날짜 목록 생성 (mobile 기준)
         if (mobile.dates && mobile.dates.length > 0) {
@@ -210,10 +233,10 @@ function loadAllData() {
     }).catch(err => {
         console.error('Data load error:', err);
         const errorMsg = '<p class="text-danger text-center py-5">데이터 로드 실패</p>';
-        ['tableMobile', 'tableTablet'].forEach(id => {
+        ['tableMobile', 'tableTablet', 'tableCombined'].forEach(id => {
             document.getElementById(id).innerHTML = errorMsg;
         });
-        ['chartMobile', 'chartTablet'].forEach(id => {
+        ['chartMobile', 'chartTablet', 'chartCombined'].forEach(id => {
             document.getElementById(id).innerHTML = errorMsg;
         });
     });
@@ -362,12 +385,14 @@ function createTable(containerId, data, device) {
 function renderAllCharts() {
     createChart('chartMobile', rawDataMobile, 'mobile');
     createChart('chartTablet', rawDataTablet, 'tablet');
+    createChart('chartCombined', rawDataCombined, 'mobile+tablet');
 }
 
 // 모든 테이블 렌더링
 function renderAllTables() {
     createTable('tableMobile', rawDataMobile, 'mobile');
     createTable('tableTablet', rawDataTablet, 'tablet');
+    createTable('tableCombined', rawDataCombined, 'mobile+tablet');
 }
 
 // 필터 적용
@@ -437,7 +462,10 @@ document.getElementById('btnDownloadExcel').addEventListener('click', (e) => {
     e.preventDefault();
 
     const activeTab = document.querySelector('.nav-link.active').id;
-    const device = activeTab === 'tab-mobile' ? 'mobile' : 'tablet';
+    let device = 'mobile';
+    if (activeTab === 'tab-mobile') device = 'mobile';
+    else if (activeTab === 'tab-tablet') device = 'tablet';
+    else if (activeTab === 'tab-combined') device = 'mobile+tablet';
 
     const from = document.getElementById('filterFrom').value || '2019-01';
     const to = document.getElementById('filterTo').value || new Date().toISOString().slice(0, 7);
