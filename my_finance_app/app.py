@@ -1119,8 +1119,36 @@ def api_earnings_calendar():
     date_str = request.args.get('date', None)
     days = int(request.args.get('days', 7))
 
+    # 1. Check cache first
+    kst = pytz.timezone('Asia/Seoul')
+    now_kst = datetime.now(kst)
+    today_kst = now_kst.date().strftime('%Y-%m-%d')
+
+    # Create cache key based on today's date (refresh daily)
+    earnings_cache_dir = os.path.join(CACHE_DIR, 'earnings')
+    os.makedirs(earnings_cache_dir, exist_ok=True)
+    cache_filename = f"earnings_calendar_{today_kst}_days{days}.json"
+    cache_filepath = os.path.join(earnings_cache_dir, cache_filename)
+
+    # Try to load from cache
+    if os.path.exists(cache_filepath):
+        try:
+            cache_mtime = os.path.getmtime(cache_filepath)
+            cache_age_hours = (datetime.now().timestamp() - cache_mtime) / 3600
+
+            # Use cache if less than 1 hour old
+            if cache_age_hours < 1:
+                with open(cache_filepath, 'r', encoding='utf-8') as f:
+                    cached_data = json.load(f)
+                print(f"✓ Earnings cache hit: {cache_filename} (age: {cache_age_hours:.1f}h)")
+                return jsonify(cached_data)
+            else:
+                print(f"⚠ Earnings cache expired: {cache_filename} (age: {cache_age_hours:.1f}h)")
+        except Exception as e:
+            print(f"⚠ Earnings cache read error: {e}")
+
     try:
-        # 1. Fetch calendar from Yahoo Finance
+        # 2. Fetch calendar from Yahoo Finance
         df_calendar = fetch_yahoo_earnings_calendar(date_str=date_str, days=days)
 
         if df_calendar.empty:
@@ -1188,6 +1216,15 @@ def api_earnings_calendar():
             })
 
         print(f"[Earnings API] Completed. Returning {len(enriched_data)} events.")
+
+        # 3. Save to cache
+        try:
+            with open(cache_filepath, 'w', encoding='utf-8') as f:
+                json.dump(enriched_data, f, ensure_ascii=False, indent=2)
+            print(f"✓ Earnings cache saved: {cache_filename}")
+        except Exception as e:
+            print(f"⚠ Earnings cache save error: {e}")
+
         return jsonify(enriched_data)
 
     except Exception as e:
