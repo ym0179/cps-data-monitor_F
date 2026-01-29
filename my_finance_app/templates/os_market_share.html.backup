@@ -1,0 +1,478 @@
+{% extends "base.html" %}
+
+{% block title %}OS Market Share - Market Data{% endblock %}
+
+{% block extra_css %}
+<style>
+    .data-table {
+        font-size: 11px;
+        overflow-x: auto;
+    }
+    .data-table table {
+        min-width: 100%;
+        border-collapse: collapse;
+    }
+    .data-table th, .data-table td {
+        padding: 4px 6px;
+        text-align: center;
+        border: 1px solid #ddd;
+        white-space: nowrap;
+    }
+    .data-table th {
+        background: #f5f5f5;
+        font-weight: 600;
+        position: sticky;
+        left: 0;
+        z-index: 1;
+    }
+    .data-table td:first-child {
+        position: sticky;
+        left: 0;
+        background: #fff;
+        font-weight: 500;
+        z-index: 1;
+    }
+    /* 색상 포맷팅 */
+    .bg-android { background-color: #c6efce !important; color: #006100; }
+    .bg-ios { background-color: #f2f2f2 !important; }
+
+    .section-title {
+        background: linear-gradient(90deg, #0d6efd 0%, #20c997 100%);
+        color: white;
+        padding: 8px 15px;
+        font-weight: 600;
+        margin-bottom: 0;
+    }
+    .chart-container {
+        height: 400px;
+    }
+    .filter-section {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    /* 날짜 입력 스타일 */
+    .date-input {
+        width: 100px;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 py-3">
+    <!-- 헤더 -->
+    <div class="mb-3">
+        <h4 class="mb-1"><i class="bi bi-phone text-primary me-2"></i>OS Market Share</h4>
+        <p class="text-muted mb-0">
+            <small>Data Source: <a href="https://gs.statcounter.com/os-market-share" target="_blank">StatCounter Global Stats</a> (Jan 2019 ~ Present)</small>
+        </p>
+    </div>
+
+    <!-- 날짜 필터 섹션 -->
+    <div class="filter-section">
+        <div class="row align-items-center">
+            <div class="col-auto">
+                <label class="form-label mb-0 fw-bold"><i class="bi bi-calendar-range me-1"></i>기간 선택:</label>
+            </div>
+            <div class="col-auto">
+                <input type="text" id="filterFrom" class="form-control form-control-sm date-input" list="dateListFrom" placeholder="YYYY-MM">
+                <datalist id="dateListFrom"></datalist>
+            </div>
+            <div class="col-auto">
+                <span class="text-muted">~</span>
+            </div>
+            <div class="col-auto">
+                <input type="text" id="filterTo" class="form-control form-control-sm date-input" list="dateListTo" placeholder="YYYY-MM">
+                <datalist id="dateListTo"></datalist>
+            </div>
+            <div class="col-auto">
+                <button id="btnApplyFilter" class="btn btn-primary btn-sm">
+                    <i class="bi bi-funnel me-1"></i>적용
+                </button>
+                <button id="btnResetFilter" class="btn btn-outline-secondary btn-sm ms-1">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>전체보기
+                </button>
+            </div>
+            <div class="col-auto ms-3">
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-primary quick-filter" data-months="12">1Y</button>
+                    <button type="button" class="btn btn-outline-primary quick-filter" data-months="36">3Y</button>
+                    <button type="button" class="btn btn-outline-primary quick-filter" data-months="60">5Y</button>
+                    <button type="button" class="btn btn-outline-primary quick-filter active" data-months="0">All</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 차트 섹션 (위에 배치) -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header py-2">
+                    <small class="fw-bold">OS Market Share (%, Mobile)</small>
+                </div>
+                <div class="card-body p-2">
+                    <div id="chartMobile" class="chart-container">
+                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header py-2">
+                    <small class="fw-bold">OS Market Share (%, Tablet)</small>
+                </div>
+                <div class="card-body p-2">
+                    <div id="chartTablet" class="chart-container">
+                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header py-2">
+                    <small class="fw-bold">OS Market Share (%, Mobile+Tablet)</small>
+                </div>
+                <div class="card-body p-2">
+                    <div id="chartCombined" class="chart-container">
+                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 데이터 테이블 섹션 (아래에 배치) -->
+    <div class="card">
+        <div class="section-title d-flex justify-content-between align-items-center">
+            <span>OS Market Share Data Table</span>
+            <a href="#" id="btnDownloadExcel" class="btn btn-light btn-sm">
+                <i class="bi bi-file-earmark-excel me-1"></i>Excel 다운로드
+            </a>
+        </div>
+        <div class="card-body p-2">
+            <ul class="nav nav-tabs mb-2" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tab-mobile" data-bs-toggle="tab" data-bs-target="#table-mobile" type="button">Mobile</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-tablet" data-bs-toggle="tab" data-bs-target="#table-tablet" type="button">Tablet</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-combined" data-bs-toggle="tab" data-bs-target="#table-combined" type="button">Mobile+Tablet</button>
+                </li>
+            </ul>
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="table-mobile">
+                    <div id="tableMobile" class="data-table">
+                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="table-tablet">
+                    <div id="tableTablet" class="data-table">
+                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="table-combined">
+                    <div id="tableCombined" class="data-table">
+                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<script>
+let rawDataMobile = null;
+let rawDataTablet = null;
+let rawDataCombined = null;
+let currentFilterFrom = null;
+let currentFilterTo = null;
+let allDates = [];
+
+// 행 색상 클래스 매핑
+function getRowClass(name) {
+    if (name.includes('Android')) return 'bg-android';
+    if (name.includes('iOS')) return 'bg-ios';
+    return '';
+}
+
+// 데이터 로드
+function loadAllData() {
+    // Mobile+Tablet은 백엔드에서 직접 가져오기 (엑셀 방식과 동일)
+    Promise.all([
+        fetch('/api/os-rivalry?device=mobile').then(res => res.json()),
+        fetch('/api/os-rivalry?device=tablet').then(res => res.json()),
+        // 백엔드에서 mobile+tablet 처리 (params 사용하면 + 기호가 보존됨)
+        fetch('/api/os-rivalry-combined').then(res => res.json())
+    ]).then(([mobile, tablet, combined]) => {
+        rawDataMobile = mobile;
+        rawDataTablet = tablet;
+        rawDataCombined = combined;
+
+        // 날짜 목록 생성 (mobile 기준)
+        if (mobile.dates && mobile.dates.length > 0) {
+            allDates = mobile.dates;
+            const dateListFrom = document.getElementById('dateListFrom');
+            const dateListTo = document.getElementById('dateListTo');
+
+            mobile.dates.forEach(date => {
+                const optFrom = document.createElement('option');
+                optFrom.value = date;
+                dateListFrom.appendChild(optFrom);
+
+                const optTo = document.createElement('option');
+                optTo.value = date;
+                dateListTo.appendChild(optTo);
+            });
+
+            // 기본값 설정
+            document.getElementById('filterFrom').value = mobile.dates[0];
+            document.getElementById('filterTo').value = mobile.dates[mobile.dates.length - 1];
+        }
+
+        renderAllCharts();
+        renderAllTables();
+    }).catch(err => {
+        console.error('Data load error:', err);
+        const errorMsg = '<p class="text-danger text-center py-5">데이터 로드 실패</p>';
+        ['tableMobile', 'tableTablet', 'tableCombined'].forEach(id => {
+            document.getElementById(id).innerHTML = errorMsg;
+        });
+        ['chartMobile', 'chartTablet', 'chartCombined'].forEach(id => {
+            document.getElementById(id).innerHTML = errorMsg;
+        });
+    });
+}
+
+// 데이터 필터링
+function filterDataByDateRange(data) {
+    if (!data || !data.dates || !currentFilterFrom || !currentFilterTo) return data;
+
+    const filteredData = {
+        dates: [],
+        series: {}
+    };
+
+    // series 초기화
+    Object.keys(data.series).forEach(key => {
+        filteredData.series[key] = [];
+    });
+
+    // 날짜 필터링
+    data.dates.forEach((date, idx) => {
+        if (date >= currentFilterFrom && date <= currentFilterTo) {
+            filteredData.dates.push(date);
+            Object.keys(data.series).forEach(key => {
+                filteredData.series[key].push(data.series[key][idx]);
+            });
+        }
+    });
+
+    return filteredData;
+}
+
+// 테이블 생성 (가로 날짜, 세로 OS)
+function createTable(containerId, data, deviceName) {
+    const container = document.getElementById(containerId);
+
+    try {
+        // 필터링된 데이터 사용
+        const displayData = currentFilterFrom && currentFilterTo ? filterDataByDateRange(data) : data;
+
+        if (!displayData || !displayData.dates || displayData.dates.length === 0) {
+            container.innerHTML = '<p class="text-center text-muted py-3">데이터 없음</p>';
+            return;
+        }
+
+        const dates = displayData.dates;
+        const osNames = Object.keys(displayData.series);
+
+        let html = '<table class="table table-sm table-bordered table-hover mb-0"><thead><tr><th></th>';
+
+        // 날짜 헤더 (가로)
+        dates.forEach(d => {
+            html += `<th>${d}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+
+        // OS별 행 (세로)
+        osNames.forEach(osName => {
+            const rowClass = getRowClass(osName);
+            html += `<tr class="${rowClass}"><td>${osName} (${deviceName})</td>`;
+
+            displayData.series[osName].forEach(v => {
+                const displayVal = (v !== null && v !== undefined && !isNaN(v)) ? v.toFixed(2) : '-';
+                html += `<td>${displayVal}</td>`;
+            });
+            html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    } catch (err) {
+        console.error('Table creation error:', err);
+        container.innerHTML = '<p class="text-danger text-center py-5">테이블 생성 오류</p>';
+    }
+}
+
+// 차트 생성
+function createChart(containerId, data, device) {
+    const container = document.getElementById(containerId);
+
+    try {
+        // 필터링된 데이터 사용
+        const displayData = currentFilterFrom && currentFilterTo ? filterDataByDateRange(data) : data;
+
+        if (!displayData || !displayData.dates || displayData.dates.length === 0) {
+            container.innerHTML = '<p class="text-center text-muted py-3">데이터 없음</p>';
+            return;
+        }
+
+        const traces = [];
+        const colors = { 'Android': '#3DDC84', 'iOS': '#555555' };
+
+        Object.keys(displayData.series).forEach(name => {
+            traces.push({
+                x: displayData.dates,
+                y: displayData.series[name],
+                name: name,
+                type: 'scatter',
+                mode: 'lines',
+                line: { width: 2, color: colors[name] || '#999999' },
+                connectgaps: false,
+                hovertemplate: '%{fullData.name}<br>%{x}<br>%{y:.2f}%<extra></extra>'
+            });
+        });
+
+        const layout = {
+            margin: { l: 40, r: 20, t: 10, b: 30 },
+            xaxis: { title: '' },
+            yaxis: { title: 'Market Share (%)', range: [0, 100] },
+            hovermode: 'x unified',
+            legend: {
+                orientation: 'h',
+                y: -0.3,
+                x: 0.5,
+                xanchor: 'center',
+                font: { size: 10 }
+            },
+            showlegend: true
+        };
+
+        const config = {
+            responsive: true,
+            displayModeBar: false
+        };
+
+        // 로딩 스피너 제거 후 차트 렌더링
+        container.innerHTML = '';
+        Plotly.newPlot(containerId, traces, layout, config)
+            .catch(err => {
+                console.error('Plotly render error:', err);
+                container.innerHTML = '<p class="text-danger text-center py-5">차트 렌더링 실패</p>';
+            });
+    } catch (err) {
+        console.error('Chart creation error:', err);
+        container.innerHTML = '<p class="text-danger text-center py-5">차트 생성 오류</p>';
+    }
+}
+
+// 모든 차트 렌더링
+function renderAllCharts() {
+    createChart('chartMobile', rawDataMobile, 'mobile');
+    createChart('chartTablet', rawDataTablet, 'tablet');
+    createChart('chartCombined', rawDataCombined, 'mobile+tablet');
+}
+
+// 모든 테이블 렌더링
+function renderAllTables() {
+    createTable('tableMobile', rawDataMobile, 'Mobile');
+    createTable('tableTablet', rawDataTablet, 'Tablet');
+    createTable('tableCombined', rawDataCombined, 'Mobile+Tablet');
+}
+
+// 필터 적용
+document.getElementById('btnApplyFilter').addEventListener('click', () => {
+    currentFilterFrom = document.getElementById('filterFrom').value;
+    currentFilterTo = document.getElementById('filterTo').value;
+
+    if (!currentFilterFrom || !currentFilterTo) {
+        alert('시작 날짜와 종료 날짜를 모두 입력하세요');
+        return;
+    }
+
+    if (currentFilterFrom > currentFilterTo) {
+        alert('시작 날짜가 종료 날짜보다 뒤일 수 없습니다');
+        return;
+    }
+
+    document.querySelectorAll('.quick-filter').forEach(btn => btn.classList.remove('active'));
+    renderAllCharts();
+    renderAllTables();
+});
+
+// 필터 초기화
+document.getElementById('btnResetFilter').addEventListener('click', () => {
+    if (allDates.length > 0) {
+        document.getElementById('filterFrom').value = allDates[0];
+        document.getElementById('filterTo').value = allDates[allDates.length - 1];
+        currentFilterFrom = null;
+        currentFilterTo = null;
+        document.querySelectorAll('.quick-filter').forEach(btn => btn.classList.remove('active'));
+        document.querySelector('.quick-filter[data-months="0"]').classList.add('active');
+        renderAllCharts();
+        renderAllTables();
+    }
+});
+
+// 빠른 필터
+document.querySelectorAll('.quick-filter').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const months = parseInt(this.getAttribute('data-months'));
+
+        document.querySelectorAll('.quick-filter').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+
+        if (months === 0) {
+            // 전체보기
+            document.getElementById('btnResetFilter').click();
+        } else if (allDates.length > 0) {
+            const endDate = allDates[allDates.length - 1];
+            const endDateObj = new Date(endDate + '-01');
+            endDateObj.setMonth(endDateObj.getMonth() - months);
+            const startDate = endDateObj.toISOString().slice(0, 7);
+
+            document.getElementById('filterFrom').value = startDate;
+            document.getElementById('filterTo').value = endDate;
+            currentFilterFrom = startDate;
+            currentFilterTo = endDate;
+
+            renderAllCharts();
+            renderAllTables();
+        }
+    });
+});
+
+// Excel 다운로드 (3개 시트 모두 포함)
+document.getElementById('btnDownloadExcel').addEventListener('click', (e) => {
+    e.preventDefault();
+
+    const from = document.getElementById('filterFrom').value || '2019-01';
+    const to = document.getElementById('filterTo').value || new Date().toISOString().slice(0, 7);
+
+    window.location.href = `/api/os-rivalry/download?start_date=${from}&end_date=${to}`;
+});
+
+// 초기 로드
+loadAllData();
+</script>
+{% endblock %}

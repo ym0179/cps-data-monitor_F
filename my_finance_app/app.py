@@ -811,7 +811,8 @@ def api_etf_data(etf_id):
         if prev_date:
             df_prev = monitor.load_data(prev_date)
             if df_prev is not None and not df_prev.empty:
-                rebalancing = monitor.analyze_rebalancing(df_today, df_prev)
+                # Pass dates for Yahoo Finance price-based rebalancing analysis
+                rebalancing = monitor.analyze_rebalancing(df_today, df_prev, date_str, prev_date)
 
         # ETF 정보
         etf_info = next((etf for etf in ETF_CONFIG if etf['id'] == etf_id), None)
