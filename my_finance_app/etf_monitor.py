@@ -152,103 +152,211 @@ class TimeETFMonitor:
         
         return None
     
-    def fetch_yahoo_prices(self, tickers: List[str], date_str: str) -> Dict[str, float]:
+    def _ticker_from_code(self, code: str) -> str:
         """
-        Fetch closing prices from Yahoo Finance for given date.
-        Converts TIME ETF ticker format to Yahoo format (e.g., "AAPL US EQUITY" -> "AAPL")
+        종목코드를 yfinance 티커로 변환
         """
-        prices = {}
-        target_date = datetime.strptime(date_str, "%Y-%m-%d")
+        code = code.strip()
 
-        for ticker in tickers:
-            try:
-                # Extract base ticker (remove " US EQUITY" suffix, handle futures/ETFs)
-                clean_ticker = ticker.split()[0]
+        # 선물 처리
+        if 'Index' in code or 'FUT' in code:
+            if 'S&P' in code or 'ES' in code:
+                return '^GSPC'  # S&P 500 Index
+            if 'NQ' in code:
+                return 'NQ=F'  # NASDAQ 100 Futures
+            return None
 
-                # Skip futures and indices
-                if 'Index' in ticker or 'FUT' in ticker.upper():
-                    continue
+        # US EQUITY 제거
+        if 'US EQUITY' in code:
+            ticker = code.replace('US EQUITY', '').strip()
+        else:
+            ticker = code
 
-                # Fetch data from Yahoo Finance
-                stock = yf.Ticker(clean_ticker)
-                hist = stock.history(start=target_date - timedelta(days=7), end=target_date + timedelta(days=1))
+        # "/" → "-" 변환 (BRK/B → BRK-B)
+        if '/' in ticker:
+            ticker = ticker.replace('/', '-')
 
-                if not hist.empty:
-                    # Get the closest available price
-                    closest_price = hist.loc[hist.index <= target_date, 'Close']
-                    if not closest_price.empty:
-                        prices[ticker] = float(closest_price.iloc[-1])
+        return ticker if ticker else None
 
-            except Exception as e:
-                print(f"[Yahoo Finance] Error fetching {ticker}: {e}")
+    def get_market_returns(self, df_prev: pd.DataFrame, df_today: pd.DataFrame,
+                          date_prev: str, date_today: str) -> Dict[str, float]:
+        """
+        yfinance로 각 종목의 시장 수익률 가져오기 (텔레그램 로직 적용)
+
+        대시보드 환경 고려사항:
+        - date_prev, date_today는 사용자가 선택한 날짜와 그 이전 영업일
+        - yfinance는 항상 최신 데이터만 제공하므로, period="5d"로 최근 5일 데이터 사용
+        - 선택한 날짜가 과거인 경우 PDF 데이터로 fallback
+        """
+        market_returns = {}
+        print(f"📊 yfinance로 시장 수익률 수집 중...")
+
+        for _, row in df_prev.iterrows():
+            code = row['종목코드']
+            stock_name = row['종목명']
+
+            # 현금은 0% 처리
+            if stock_name == '현금' or code == '':
+                market_returns[code] = 0.0
                 continue
 
-        return prices
+            ticker_symbol = self._ticker_from_code(code)
+
+            # 티커 변환 실패 시 PDF fallback
+            if not ticker_symbol:
+                try:
+                    today_row = df_today[df_today['종목코드'] == code]
+                    if len(today_row) > 0 and row['보유수량'] > 0 and today_row.iloc[0]['보유수량'] > 0:
+                        prev_price = row['평가금액'] / row['보유수량']
+                        today_price = today_row.iloc[0]['평가금액'] / today_row.iloc[0]['보유수량']
+                        pdf_return = (today_price / prev_price - 1) if prev_price > 0 else 0
+                        market_returns[code] = pdf_return
+                        print(f"ℹ️  {code[:20]} ({stock_name}): yfinance 미지원, PDF 가격 사용 ({pdf_return*100:.2f}%)")
+                    else:
+                        market_returns[code] = 0.0
+                        print(f"ℹ️  {code[:20]} ({stock_name}): yfinance 미지원, 0% 사용")
+                except:
+                    market_returns[code] = 0.0
+                continue
+
+            try:
+                # yfinance로 최근 5일 데이터 가져오기 (최신 2개 영업일 확보)
+                ticker = yf.Ticker(ticker_symbol)
+                hist = ticker.history(period="5d")
+
+                if len(hist) < 2:
+                    # 데이터 부족 시 PDF fallback
+                    today_row = df_today[df_today['종목코드'] == code]
+                    if len(today_row) > 0 and row['보유수량'] > 0 and today_row.iloc[0]['보유수량'] > 0:
+                        prev_price = row['평가금액'] / row['보유수량']
+                        today_price = today_row.iloc[0]['평가금액'] / today_row.iloc[0]['보유수량']
+                        pdf_return = (today_price / prev_price - 1) if prev_price > 0 else 0
+                        market_returns[code] = pdf_return
+                        print(f"ℹ️  {ticker_symbol} ({stock_name}): yfinance 데이터 부족, PDF 가격 사용 ({pdf_return*100:.2f}%)")
+                    else:
+                        market_returns[code] = 0.0
+                        print(f"⚠️  {ticker_symbol} ({stock_name}): yfinance 데이터 부족, 0% 사용")
+                    continue
+
+                # 최신 2개 영업일 사용 (D-1, D-2)
+                prev_close = hist.iloc[-2]['Close']
+                today_close = hist.iloc[-1]['Close']
+                prev_date_used = hist.iloc[-2].name.strftime('%Y-%m-%d')
+                today_date_used = hist.iloc[-1].name.strftime('%Y-%m-%d')
+
+                # 수익률 계산
+                market_return = (today_close / prev_close - 1) if prev_close > 0 else 0.0
+                market_returns[code] = market_return
+                print(f"✓ {ticker_symbol} ({stock_name}): {market_return*100:+.2f}% ({prev_date_used} → {today_date_used})")
+
+            except Exception as e:
+                # 오류 발생 시 PDF fallback
+                try:
+                    today_row = df_today[df_today['종목코드'] == code]
+                    if len(today_row) > 0 and row['보유수량'] > 0 and today_row.iloc[0]['보유수량'] > 0:
+                        prev_price = row['평가금액'] / row['보유수량']
+                        today_price = today_row.iloc[0]['평가금액'] / today_row.iloc[0]['보유수량']
+                        pdf_return = (today_price / prev_price - 1) if prev_price > 0 else 0
+                        market_returns[code] = pdf_return
+                        print(f"⚠️  {ticker_symbol} ({stock_name}): yfinance 오류, PDF 가격 사용 ({pdf_return*100:.2f}%)")
+                    else:
+                        market_returns[code] = 0.0
+                        print(f"⚠️  {ticker_symbol} ({stock_name}): yfinance 오류, 0% 사용")
+                except:
+                    market_returns[code] = 0.0
+
+        return market_returns
 
     def analyze_rebalancing(self, df_today: pd.DataFrame, df_prev: pd.DataFrame,
                           date_today: str = None, date_prev: str = None) -> Dict:
         """
-        Analyze changes based on actual price-adjusted rebalancing.
+        리밸런싱 분석 (텔레그램 로직 적용)
 
-        Logic:
-        1. Get yesterday's closing prices from Yahoo Finance
-        2. Calculate theoretical portfolio weights if no trading occurred (price changes only)
-        3. Compare with actual portfolio weights to detect rebalancing trades
+        시장 가격 변동만으로 설명되지 않는 비중 변화를 리밸런싱으로 감지
+        AUM 변화와 가격 변동 효과를 모두 제거
+
+        대시보드 환경 고려:
+        - 사용자가 선택한 날짜(date_today)와 이전 영업일(date_prev) 비교
+        - yfinance는 최신 데이터만 제공하므로 과거 날짜 선택 시 PDF 데이터로 보정
         """
+        # 종목코드 기준으로 병합
         merged = pd.merge(
-            df_today[['종목명', '종목코드', '보유수량', '비중', '평가금액']],
-            df_prev[['종목명', '종목코드', '보유수량', '비중', '평가금액']],
+            df_today[['종목코드', '종목명', '보유수량', '평가금액', '비중']],
+            df_prev[['종목코드', '종목명', '보유수량', '평가금액', '비중']],
             on='종목코드',
             how='outer',
             suffixes=('_today', '_prev')
         )
 
+        # 종목명 통합 (금일 우선)
         merged['종목명'] = merged['종목명_today'].fillna(merged['종목명_prev'])
 
-        # Fill NaNs with 0
-        for col in ['보유수량_today', '보유수량_prev', '비중_today', '비중_prev', '평가금액_today', '평가금액_prev']:
-            merged[col] = merged[col].fillna(0)
+        # 숫자 컬럼만 0으로 채우기
+        numeric_columns = ['보유수량_today', '보유수량_prev', '평가금액_today', '평가금액_prev', '비중_today', '비중_prev']
+        merged[numeric_columns] = merged[numeric_columns].fillna(0)
 
-        # Calculate deltas
-        merged['수량변화'] = merged['보유수량_today'] - merged['보유수량_prev']
-        merged['비중변화'] = merged['비중_today'] - merged['비중_prev']
-
-        # Fetch Yahoo Finance prices if dates provided
-        if date_today and date_prev:
-            all_tickers = merged['종목코드'].unique().tolist()
-            prices_today = self.fetch_yahoo_prices(all_tickers, date_today)
-            prices_prev = self.fetch_yahoo_prices(all_tickers, date_prev)
-
-            # Calculate price-adjusted expected weights
-            merged['price_return'] = merged['종목코드'].apply(
-                lambda t: (prices_today.get(t, 1) / prices_prev.get(t, 1)) if prices_prev.get(t) else 1
-            )
-
-            # Expected weight = prev_weight * price_return (if no trading)
-            # Normalize after price changes
-            merged['expected_weight'] = merged['비중_prev'] * merged['price_return']
-            total_expected = merged['expected_weight'].sum()
-            if total_expected > 0:
-                merged['expected_weight'] = merged['expected_weight'] / total_expected * 100
-
-            # True rebalancing = actual weight - expected weight
-            merged['true_rebalancing'] = merged['비중_today'] - merged['expected_weight']
+        # 1단계: 시장 수익률 가져오기
+        if date_prev and date_today:
+            market_returns = self.get_market_returns(df_prev, df_today, date_prev, date_today)
         else:
-            # Fallback to simple weight change
-            merged['true_rebalancing'] = merged['비중변화']
+            # 날짜 없으면 PDF 데이터로 fallback
+            print(f"⚠️  날짜 정보 없음, PDF 데이터로 수익률 계산")
+            market_returns = {}
+            for _, row in df_prev.iterrows():
+                code = row['종목코드']
+                prev_price = row['평가금액'] / row['보유수량'] if row['보유수량'] > 0 else 0
+                today_row = df_today[df_today['종목코드'] == code]
+                if len(today_row) > 0:
+                    today_price = today_row.iloc[0]['평가금액'] / today_row.iloc[0]['보유수량'] if today_row.iloc[0]['보유수량'] > 0 else 0
+                    market_returns[code] = (today_price / prev_price - 1) if prev_price > 0 else 0
+                else:
+                    market_returns[code] = 0
 
-        # Thresholds
-        share_threshold = 1.0
-        weight_threshold = 0.5  # 0.5%p true rebalancing
+        # 시장 수익률을 merged에 추가
+        merged['시장_수익률'] = merged['종목코드'].map(market_returns).fillna(0)
 
-        # Categorize changes
-        new_stocks = merged[(merged['보유수량_prev'] == 0) & (merged['보유수량_today'] > 0)]
-        removed_stocks = merged[(merged['보유수량_today'] == 0) & (merged['보유수량_prev'] > 0)]
+        # 2단계: 가상 비중 계산 (시장 변동만 반영)
+        merged['가상_비중'] = merged['비중_prev'] * (1 + merged['시장_수익률'])
 
-        # Weight changes for existing positions (using true rebalancing)
-        existing = merged[(merged['보유수량_prev'] > 0) & (merged['보유수량_today'] > 0)]
-        increased = existing[existing['true_rebalancing'] >= weight_threshold]
-        decreased = existing[existing['true_rebalancing'] <= -weight_threshold]
+        # 3단계: 정규화 (100%로 스케일링) ⭐ 핵심!
+        total_virtual_weight = merged['가상_비중'].sum()
+        if total_virtual_weight > 0:
+            merged['예상_비중'] = merged['가상_비중'] / total_virtual_weight * 100
+        else:
+            merged['예상_비중'] = 0
+
+        # 4단계: 실제 비중 변화 vs 예상 비중 변화
+        merged['순수_비중변화'] = merged['비중_today'] - merged['예상_비중']
+
+        # 5단계: 수량 변화 확인
+        merged['수량_변화'] = merged['보유수량_today'] - merged['보유수량_prev']
+
+        # 리밸런싱 감지
+        # - 의미있는 비중 변화 (±0.5%p 이상)
+        # - 또는 편입/편출 (수량이 0에서 변화)
+        # - 현금 제외
+        threshold = 0.5
+        rebalanced = merged[
+            ((abs(merged['순수_비중변화']) >= threshold) |
+             (merged['보유수량_prev'] == 0) |
+             (merged['보유수량_today'] == 0)) &
+            (merged['종목명'] != '현금')
+        ].copy()
+
+        # 편입/편출/비중확대/비중축소 구분
+        new_stocks = rebalanced[(rebalanced['보유수량_prev'] == 0) & (rebalanced['보유수량_today'] > 0)]
+        removed_stocks = rebalanced[(rebalanced['보유수량_today'] == 0) & (rebalanced['보유수량_prev'] > 0)]
+
+        # 비중 확대/축소는 순수 비중 변화 + 수량 변화 모두 체크 ⭐ 핵심!
+        # 수량이 증가했고, 비중도 의미있게 증가한 경우만
+        increased_stocks = rebalanced[(rebalanced['순수_비중변화'] > threshold) &
+                                     (rebalanced['수량_변화'] > 0) &
+                                     (rebalanced['보유수량_prev'] > 0) &
+                                     (rebalanced['보유수량_today'] > 0)]
+        decreased_stocks = rebalanced[(rebalanced['순수_비중변화'] < -threshold) &
+                                     (rebalanced['수량_변화'] < 0) &
+                                     (rebalanced['보유수량_prev'] > 0) &
+                                     (rebalanced['보유수량_today'] > 0)]
 
         # Clean data for JSON serialization
         def clean_records(df):
@@ -258,8 +366,8 @@ class TimeETFMonitor:
         return {
             'new_stocks': clean_records(new_stocks),
             'removed_stocks': clean_records(removed_stocks),
-            'increased_stocks': clean_records(increased),
-            'decreased_stocks': clean_records(decreased)
+            'increased_stocks': clean_records(increased_stocks),
+            'decreased_stocks': clean_records(decreased_stocks)
         }
 
 
@@ -268,8 +376,10 @@ class KiwoomETFMonitor:
     Monitor for Kiwoom KOSEF Active ETF (US Growth 30)
     Target: 459790 (KOSEF 미국성장기업30 Active)
     Source: AJAX API (https://www.kiwoometf.com/service/etf/KO02010200MAjax4)
+
+    Note: 미국 주식을 편입하므로 TIME ETF와 동일한 리밸런싱 로직 사용
     """
-    
+
     API_URL = "https://www.kiwoometf.com/service/etf/KO02010200MAjax4"
     HEADERS = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -279,7 +389,7 @@ class KiwoomETFMonitor:
         'Referer': 'https://www.kiwoometf.com/service/etf/KO02010200M?gcode=459790'
     }
     KST = pytz.timezone('Asia/Seoul')
-    
+
     def __init__(self, data_dir: str = "./data/kiwoom_etf"):
         self.data_dir = data_dir
         os.makedirs(self.data_dir, exist_ok=True)
@@ -383,15 +493,118 @@ class KiwoomETFMonitor:
         
         return None
     
+    def _ticker_from_code(self, code: str) -> str:
+        """
+        종목코드를 yfinance 티커로 변환 (TIME ETF와 동일)
+        """
+        code = code.strip()
+
+        # 선물 처리
+        if 'Index' in code or 'FUT' in code:
+            if 'S&P' in code or 'ES' in code:
+                return '^GSPC'
+            if 'NQ' in code:
+                return 'NQ=F'
+            return None
+
+        # US EQUITY 제거
+        if 'US EQUITY' in code:
+            ticker = code.replace('US EQUITY', '').strip()
+        else:
+            ticker = code
+
+        # "/" → "-" 변환
+        if '/' in ticker:
+            ticker = ticker.replace('/', '-')
+
+        return ticker if ticker else None
+
+    def get_market_returns(self, df_prev: pd.DataFrame, df_today: pd.DataFrame,
+                          date_prev: str, date_today: str) -> Dict[str, float]:
+        """
+        yfinance로 각 종목의 시장 수익률 가져오기 (TIME ETF와 동일 로직)
+        """
+        market_returns = {}
+        print(f"📊 [Kiwoom] yfinance로 시장 수익률 수집 중...")
+
+        for _, row in df_prev.iterrows():
+            code = row['종목코드']
+            stock_name = row['종목명']
+
+            # 현금 처리
+            if stock_name == '현금' or code == '':
+                market_returns[code] = 0.0
+                continue
+
+            ticker_symbol = self._ticker_from_code(code)
+
+            # 티커 변환 실패 시 PDF fallback
+            if not ticker_symbol:
+                try:
+                    today_row = df_today[df_today['종목코드'] == code]
+                    if len(today_row) > 0 and row['보유수량'] > 0 and today_row.iloc[0]['보유수량'] > 0:
+                        prev_price = row['평가금액'] / row['보유수량']
+                        today_price = today_row.iloc[0]['평가금액'] / today_row.iloc[0]['보유수량']
+                        pdf_return = (today_price / prev_price - 1) if prev_price > 0 else 0
+                        market_returns[code] = pdf_return
+                        print(f"ℹ️  {code[:20]} ({stock_name}): PDF 가격 사용 ({pdf_return*100:.2f}%)")
+                    else:
+                        market_returns[code] = 0.0
+                except:
+                    market_returns[code] = 0.0
+                continue
+
+            try:
+                ticker = yf.Ticker(ticker_symbol)
+                hist = ticker.history(period="5d")
+
+                if len(hist) < 2:
+                    # PDF fallback
+                    today_row = df_today[df_today['종목코드'] == code]
+                    if len(today_row) > 0 and row['보유수량'] > 0 and today_row.iloc[0]['보유수량'] > 0:
+                        prev_price = row['평가금액'] / row['보유수량']
+                        today_price = today_row.iloc[0]['평가금액'] / today_row.iloc[0]['보유수량']
+                        pdf_return = (today_price / prev_price - 1) if prev_price > 0 else 0
+                        market_returns[code] = pdf_return
+                        print(f"ℹ️  {ticker_symbol} ({stock_name}): PDF 가격 사용 ({pdf_return*100:.2f}%)")
+                    else:
+                        market_returns[code] = 0.0
+                    continue
+
+                prev_close = hist.iloc[-2]['Close']
+                today_close = hist.iloc[-1]['Close']
+                prev_date_used = hist.iloc[-2].name.strftime('%Y-%m-%d')
+                today_date_used = hist.iloc[-1].name.strftime('%Y-%m-%d')
+
+                market_return = (today_close / prev_close - 1) if prev_close > 0 else 0.0
+                market_returns[code] = market_return
+                print(f"✓ {ticker_symbol} ({stock_name}): {market_return*100:+.2f}% ({prev_date_used} → {today_date_used})")
+
+            except:
+                try:
+                    today_row = df_today[df_today['종목코드'] == code]
+                    if len(today_row) > 0 and row['보유수량'] > 0 and today_row.iloc[0]['보유수량'] > 0:
+                        prev_price = row['평가금액'] / row['보유수량']
+                        today_price = today_row.iloc[0]['평가금액'] / today_row.iloc[0]['보유수량']
+                        pdf_return = (today_price / prev_price - 1) if prev_price > 0 else 0
+                        market_returns[code] = pdf_return
+                        print(f"⚠️  {ticker_symbol} ({stock_name}): PDF 가격 사용 ({pdf_return*100:.2f}%)")
+                    else:
+                        market_returns[code] = 0.0
+                except:
+                    market_returns[code] = 0.0
+
+        return market_returns
+
     def analyze_rebalancing(self, df_today: pd.DataFrame, df_prev: pd.DataFrame,
                           date_today: str = None, date_prev: str = None) -> Dict:
         """
-        Analyze changes based on SHARES and WEIGHTS.
-        For Kiwoom ETF (Korean stocks), we use simple weight change analysis.
+        리밸런싱 분석 (텔레그램 로직 적용 - TIME ETF와 동일)
+        Kiwoom ETF도 미국 주식 편입이므로 동일한 가격 보정 로직 사용
         """
         merged = pd.merge(
-            df_today[['종목명', '종목코드', '보유수량', '비중']],
-            df_prev[['종목명', '종목코드', '보유수량', '비중']],
+            df_today[['종목코드', '종목명', '보유수량', '평가금액', '비중']],
+            df_prev[['종목코드', '종목명', '보유수량', '평가금액', '비중']],
             on='종목코드',
             how='outer',
             suffixes=('_today', '_prev')
@@ -399,28 +612,56 @@ class KiwoomETFMonitor:
 
         merged['종목명'] = merged['종목명_today'].fillna(merged['종목명_prev'])
 
-        # Fill NaNs
-        for col in ['보유수량_today', '보유수량_prev', '비중_today', '비중_prev']:
-            merged[col] = merged[col].fillna(0)
+        numeric_columns = ['보유수량_today', '보유수량_prev', '평가금액_today', '평가금액_prev', '비중_today', '비중_prev']
+        merged[numeric_columns] = merged[numeric_columns].fillna(0)
 
-        # Calculate deltas
-        merged['수량변화'] = merged['보유수량_today'] - merged['보유수량_prev']
-        merged['비중변화'] = merged['비중_today'] - merged['비중_prev']
+        # 시장 수익률 가져오기
+        if date_prev and date_today:
+            market_returns = self.get_market_returns(df_prev, df_today, date_prev, date_today)
+        else:
+            market_returns = {}
+            for _, row in df_prev.iterrows():
+                code = row['종목코드']
+                prev_price = row['평가금액'] / row['보유수량'] if row['보유수량'] > 0 else 0
+                today_row = df_today[df_today['종목코드'] == code]
+                if len(today_row) > 0:
+                    today_price = today_row.iloc[0]['평가금액'] / today_row.iloc[0]['보유수량'] if today_row.iloc[0]['보유수량'] > 0 else 0
+                    market_returns[code] = (today_price / prev_price - 1) if prev_price > 0 else 0
+                else:
+                    market_returns[code] = 0
 
-        # Thresholds
-        share_threshold = 1.0
-        weight_threshold = 0.5
+        merged['시장_수익률'] = merged['종목코드'].map(market_returns).fillna(0)
+        merged['가상_비중'] = merged['비중_prev'] * (1 + merged['시장_수익률'])
 
-        # Categorize changes
-        new_stocks = merged[(merged['보유수량_prev'] == 0) & (merged['보유수량_today'] > 0)]
-        removed_stocks = merged[(merged['보유수량_today'] == 0) & (merged['보유수량_prev'] > 0)]
+        # 정규화
+        total_virtual_weight = merged['가상_비중'].sum()
+        if total_virtual_weight > 0:
+            merged['예상_비중'] = merged['가상_비중'] / total_virtual_weight * 100
+        else:
+            merged['예상_비중'] = 0
 
-        # Weight changes for existing positions
-        existing = merged[(merged['보유수량_prev'] > 0) & (merged['보유수량_today'] > 0)]
-        increased = existing[existing['비중변화'] >= weight_threshold]
-        decreased = existing[existing['비중변화'] <= -weight_threshold]
+        merged['순수_비중변화'] = merged['비중_today'] - merged['예상_비중']
+        merged['수량_변화'] = merged['보유수량_today'] - merged['보유수량_prev']
 
-        # Clean data for JSON serialization
+        threshold = 0.5
+        rebalanced = merged[
+            ((abs(merged['순수_비중변화']) >= threshold) |
+             (merged['보유수량_prev'] == 0) |
+             (merged['보유수량_today'] == 0)) &
+            (merged['종목명'] != '현금')
+        ].copy()
+
+        new_stocks = rebalanced[(rebalanced['보유수량_prev'] == 0) & (rebalanced['보유수량_today'] > 0)]
+        removed_stocks = rebalanced[(rebalanced['보유수량_today'] == 0) & (rebalanced['보유수량_prev'] > 0)]
+        increased_stocks = rebalanced[(rebalanced['순수_비중변화'] > threshold) &
+                                     (rebalanced['수량_변화'] > 0) &
+                                     (rebalanced['보유수량_prev'] > 0) &
+                                     (rebalanced['보유수량_today'] > 0)]
+        decreased_stocks = rebalanced[(rebalanced['순수_비중변화'] < -threshold) &
+                                     (rebalanced['수량_변화'] < 0) &
+                                     (rebalanced['보유수량_prev'] > 0) &
+                                     (rebalanced['보유수량_today'] > 0)]
+
         def clean_records(df):
             df = df.where(pd.notna(df), None)
             return df.to_dict('records')
@@ -428,6 +669,6 @@ class KiwoomETFMonitor:
         return {
             'new_stocks': clean_records(new_stocks),
             'removed_stocks': clean_records(removed_stocks),
-            'increased_stocks': clean_records(increased),
-            'decreased_stocks': clean_records(decreased)
+            'increased_stocks': clean_records(increased_stocks),
+            'decreased_stocks': clean_records(decreased_stocks)
         }
