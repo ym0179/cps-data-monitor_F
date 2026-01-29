@@ -4,7 +4,7 @@ plotly
 finance-datareader
 requests
 beautifulsoup4
-yfinance
+yfinance>=1.1.0
 pytz
 feedparser
 openpyxl

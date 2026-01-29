@@ -7,6 +7,7 @@ import datetime
 import urllib3
 from bs4 import BeautifulSoup
 import yfinance as yf
+import time
 
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -119,12 +120,14 @@ def convert_call_time_to_korean(call_time):
         return call_time  # Return original if unknown
 
 
-def fetch_analyst_consensus(ticker):
+def fetch_analyst_consensus(ticker, retry_count=3, delay=1.5):
     """
     Fetch Analyst Consensus from Yahoo Finance (yfinance)
 
     Args:
         ticker: Stock symbol
+        retry_count: Number of retries on failure (default: 3)
+        delay: Delay between retries in seconds (default: 1.5)
 
     Returns:
         dict with keys: targetMean, targetHigh, targetLow, recommendMean, recommendKey, analystCount
@@ -138,98 +141,134 @@ def fetch_analyst_consensus(ticker):
         'analystCount': 0
     }
 
-    try:
-        session = requests.Session()
-        session.verify = False
-        session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        })
+    for attempt in range(retry_count):
+        try:
+            # Add delay to avoid rate limiting (except first attempt)
+            if attempt > 0:
+                time.sleep(delay)
 
-        t = yf.Ticker(ticker, session=session)
-        info = t.info
+            session = requests.Session()
+            session.verify = False
+            session.headers.update({
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.5",
+                "Referer": "https://finance.yahoo.com/"
+            })
 
-        if info and 'targetMeanPrice' in info:
-            result['targetMean'] = info.get('targetMeanPrice')
-            result['targetHigh'] = info.get('targetHighPrice')
-            result['targetLow'] = info.get('targetLowPrice')
-            result['recommendMean'] = info.get('recommendationMean')
-            result['recommendKey'] = info.get('recommendationKey')
-            result['analystCount'] = info.get('numberOfAnalystOpinions', 0)
+            t = yf.Ticker(ticker, session=session)
+            info = t.info
 
-    except Exception as e:
-        print(f"[fetch_analyst_consensus] Error for {ticker}: {type(e).__name__}: {str(e)}")
-        pass
+            # Check if we got any data at all
+            if not info:
+                print(f"[fetch_analyst_consensus] {ticker} attempt {attempt+1}: info is empty")
+                continue
+
+            # Try to get analyst data with fallback
+            target_mean = info.get('targetMeanPrice')
+            analyst_count = info.get('numberOfAnalystOpinions', 0)
+
+            # If we got any analyst data, consider it a success
+            if target_mean is not None or analyst_count > 0:
+                result['targetMean'] = target_mean
+                result['targetHigh'] = info.get('targetHighPrice')
+                result['targetLow'] = info.get('targetLowPrice')
+                result['recommendMean'] = info.get('recommendationMean')
+                result['recommendKey'] = info.get('recommendationKey')
+                result['analystCount'] = analyst_count
+                print(f"[fetch_analyst_consensus] {ticker} success: rating={result['recommendKey']}, analysts={analyst_count}")
+                break
+            else:
+                print(f"[fetch_analyst_consensus] {ticker} attempt {attempt+1}: No analyst data (may not have coverage)")
+
+        except Exception as e:
+            print(f"[fetch_analyst_consensus] {ticker} attempt {attempt+1} error: {type(e).__name__}: {str(e)}")
+            if attempt == retry_count - 1:
+                print(f"[fetch_analyst_consensus] {ticker} failed after {retry_count} attempts")
 
     return result
 
 
-def fetch_historical_price(ticker, years=3):
+def fetch_historical_price(ticker, years=3, retry_count=2):
     """
     Fetch historical price data from Yahoo Finance
 
     Args:
         ticker: Stock symbol
         years: Number of years of data (default: 3)
+        retry_count: Number of retries on failure (default: 2)
 
     Returns:
         DataFrame with Date index and Close column
     """
-    try:
-        session = requests.Session()
-        session.verify = False
-        session.headers.update({
-            "User-Agent": "Mozilla/5.0"
-        })
+    for attempt in range(retry_count):
+        try:
+            if attempt > 0:
+                time.sleep(1.0)
 
-        t = yf.Ticker(ticker, session=session)
-        end_date = datetime.datetime.now()
-        start_date = end_date - datetime.timedelta(days=365 * years)
+            session = requests.Session()
+            session.verify = False
+            session.headers.update({
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            })
 
-        hist = t.history(start=start_date, end=end_date)
+            t = yf.Ticker(ticker, session=session)
+            end_date = datetime.datetime.now()
+            start_date = end_date - datetime.timedelta(days=365 * years)
 
-        if not hist.empty:
-            df = pd.DataFrame()
-            df['Close'] = hist['Close']
-            df.index = pd.to_datetime(df.index).normalize()
-            return df
+            hist = t.history(start=start_date, end=end_date)
 
-    except Exception as e:
-        print(f"[fetch_historical_price] Error for {ticker}: {type(e).__name__}: {str(e)}")
-        pass
+            if not hist.empty:
+                df = pd.DataFrame()
+                df['Close'] = hist['Close']
+                df.index = pd.to_datetime(df.index).normalize()
+                return df
+            else:
+                print(f"[fetch_historical_price] {ticker} attempt {attempt+1}: No price data")
+
+        except Exception as e:
+            print(f"[fetch_historical_price] {ticker} attempt {attempt+1} error: {type(e).__name__}: {str(e)}")
 
     return pd.DataFrame()
 
 
-def fetch_historical_earnings_dates(ticker):
+def fetch_historical_earnings_dates(ticker, retry_count=2):
     """
     Fetch historical earnings dates from Yahoo Finance
 
     Args:
         ticker: Stock symbol
+        retry_count: Number of retries on failure (default: 2)
 
     Returns:
         List of datetime objects (earnings dates)
     """
     dates_list = []
 
-    try:
-        session = requests.Session()
-        session.verify = False
-        session.headers.update({
-            "User-Agent": "Mozilla/5.0"
-        })
+    for attempt in range(retry_count):
+        try:
+            if attempt > 0:
+                time.sleep(1.0)
 
-        t = yf.Ticker(ticker, session=session)
+            session = requests.Session()
+            session.verify = False
+            session.headers.update({
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            })
 
-        # earnings_dates returns DataFrame with index = datetime
-        earnings_dates = t.earnings_dates
+            t = yf.Ticker(ticker, session=session)
 
-        if earnings_dates is not None and not earnings_dates.empty:
-            dates_list = [pd.Timestamp(dt).normalize() for dt in earnings_dates.index]
+            # earnings_dates returns DataFrame with index = datetime
+            earnings_dates = t.earnings_dates
 
-    except Exception as e:
-        print(f"[fetch_historical_earnings_dates] Error for {ticker}: {type(e).__name__}: {str(e)}")
-        pass
+            if earnings_dates is not None and not earnings_dates.empty:
+                dates_list = [pd.Timestamp(dt).normalize() for dt in earnings_dates.index]
+                break
+            else:
+                print(f"[fetch_historical_earnings_dates] {ticker} attempt {attempt+1}: No earnings dates")
+
+        except Exception as e:
+            print(f"[fetch_historical_earnings_dates] {ticker} attempt {attempt+1} error: {type(e).__name__}: {str(e)}")
 
     # Deduplicate and sort
     unique_dates = sorted(list(set(dates_list)))
