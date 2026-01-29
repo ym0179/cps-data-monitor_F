@@ -19,13 +19,19 @@ class TimeETFMonitor:
     - NASDAQ100: idx=2
     Source: https://timeetf.co.kr/m11_view.php
     """
-    
+
     BASE_URL = "https://timeetf.co.kr/m11_view.php"
     HEADERS = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
     KST = pytz.timezone('Asia/Seoul')
-    
+
+    # ISIN 코드 → yfinance 티커 매핑 테이블
+    ISIN_TO_TICKER = {
+        'CA13321L1085': 'CCJ',  # Cameco Corp
+        # 필요시 추가 매핑
+    }
+
     def __init__(self, etf_idx: str, etf_name: str, data_dir: str = "./data/time_etf"):
         self.etf_idx = etf_idx
         self.etf_name = etf_name
@@ -155,24 +161,47 @@ class TimeETFMonitor:
     def _ticker_from_code(self, code: str) -> str:
         """
         종목코드를 yfinance 티커로 변환
+
+        Args:
+            code: PDF 종목코드 (예: "NVDA US EQUITY", "ESZ5 Index", "BRK/B US EQUITY", "CA13321L1085")
+
+        Returns:
+            yfinance 티커 (예: "NVDA", "BRK-B", "^GSPC", "CCJ")
         """
         code = code.strip()
 
+        # ISIN 코드 먼저 체크 (길이가 12자이고 공백이 없는 경우)
+        # 예: CA13321L1085 (ISIN)
+        # 제외: "PG US EQUITY" (12자이지만 공백 있음)
+        if len(code) == 12 and ' ' not in code:
+            if code in self.ISIN_TO_TICKER:
+                return self.ISIN_TO_TICKER[code]
+            else:
+                # 매핑되지 않은 ISIN 코드
+                return None
+
         # 선물 처리
         if 'Index' in code or 'FUT' in code:
+            # S&P500 선물
             if 'S&P' in code or 'ES' in code:
-                return '^GSPC'  # S&P 500 Index
+                return '^GSPC'  # S&P 500 Index로 대체
+            # NASDAQ 100 선물 (NQZ5, NQH6 등)
             if 'NQ' in code:
-                return 'NQ=F'  # NASDAQ 100 Futures
+                return 'NQ=F'  # NASDAQ 100 E-MINI Futures
+            # 기타 선물은 기초자산 반환 또는 None
             return None
 
         # US EQUITY 제거
         if 'US EQUITY' in code:
             ticker = code.replace('US EQUITY', '').strip()
+        # CT EQUITY 제거 (캐나다 주식 - 토론토 증권거래소)
+        elif 'CT EQUITY' in code:
+            ticker = code.replace('CT EQUITY', '').strip() + '.TO'
         else:
             ticker = code
 
-        # "/" → "-" 변환 (BRK/B → BRK-B)
+        # 티커 형식 변환: "/" → "-" (BRK/B → BRK-B, BRK/A → BRK-A)
+        # yfinance는 클래스 주식을 하이픈으로 표기
         if '/' in ticker:
             ticker = ticker.replace('/', '-')
 
