@@ -57,7 +57,7 @@ requests.Session.request = patched_request
 # 1. 페이지 설정
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title="MAS Strategy Dashboard",
+    page_title="고객상품전략팀",
     page_icon="mirae_icon.png",
     layout="wide",
     initial_sidebar_state="expanded"
