@@ -4,76 +4,30 @@
 
 {% block extra_css %}
 <style>
-    .feature-card-modern {
-        display: flex;
-        align-items: center;
-        padding: 2rem;
-        border-radius: 20px;
-        text-decoration: none;
-        transition: all 0.3s ease;
-        border: none;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        height: 140px;
-    }
-
-    .feature-card-modern:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
-    }
-
-    .feature-icon-container {
-        width: 80px;
-        height: 80px;
-        border-radius: 16px;
+    .feature-card-simple {
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 2.5rem;
-        margin-right: 1.5rem;
-        flex-shrink: 0;
+        padding: 2rem;
+        border-radius: 12px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        border: 1px solid #e5e7eb;
+        background: white;
+        height: 120px;
     }
 
-    .feature-content {
-        flex: 1;
-        text-align: left;
+    .feature-card-simple:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-color: #3b82f6;
     }
 
     .feature-title {
-        font-size: 1.25rem;
+        font-size: 1.5rem;
         font-weight: 600;
         color: #1f2937;
-        margin-bottom: 0.25rem;
-    }
-
-    .feature-description {
-        font-size: 0.875rem;
-        color: #6b7280;
         margin: 0;
-    }
-
-    /* Card Colors */
-    .card-interest-top50 {
-        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-    }
-
-    .card-interest-top50 .feature-icon-container {
-        background: rgba(255, 255, 255, 0.5);
-    }
-
-    .card-growth-stocks {
-        background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
-    }
-
-    .card-growth-stocks .feature-icon-container {
-        background: rgba(255, 255, 255, 0.5);
-    }
-
-    .card-rocket-stocks {
-        background: linear-gradient(135deg, #c7d2fe 0%, #a5b4fc 100%);
-    }
-
-    .card-rocket-stocks .feature-icon-container {
-        background: rgba(255, 255, 255, 0.5);
     }
 
     .page-title {
@@ -103,38 +57,20 @@
     <!-- Feature Cards -->
     <div class="row g-4">
         <div class="col-md-4">
-            <a href="/market/search-engine" class="card feature-card-modern card-interest-top50">
-                <div class="feature-icon-container">
-                    <span style="font-size: 3rem;">🏆</span>
-                </div>
-                <div class="feature-content">
-                    <h3 class="feature-title">관심 TOP50</h3>
-                    <p class="feature-description">글로벌 시장 점유율 추적</p>
-                </div>
+            <a href="/market/search-engine" class="card feature-card-simple">
+                <h3 class="feature-title">관심 TOP50</h3>
             </a>
         </div>
 
         <div class="col-md-4">
-            <a href="/etf" class="card feature-card-modern card-growth-stocks">
-                <div class="feature-icon-container">
-                    <span style="font-size: 3rem;">🚀</span>
-                </div>
-                <div class="feature-content">
-                    <h3 class="feature-title">발굴! 성장주</h3>
-                    <p class="feature-description">TOP 1% 매니저 포트폴리오</p>
-                </div>
+            <a href="/etf" class="card feature-card-simple">
+                <h3 class="feature-title">발굴! 성장주</h3>
             </a>
         </div>
 
         <div class="col-md-4">
-            <a href="/earnings" class="card feature-card-modern card-rocket-stocks">
-                <div class="feature-icon-container">
-                    <span style="font-size: 3rem;">🚀</span>
-                </div>
-                <div class="feature-content">
-                    <h3 class="feature-title">로켓 성장주</h3>
-                    <p class="feature-description">Idio Score 기반 알파 발굴</p>
-                </div>
+            <a href="/earnings" class="card feature-card-simple">
+                <h3 class="feature-title">로켓 성장주</h3>
             </a>
         </div>
     </div>
