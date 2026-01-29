@@ -15,12 +15,16 @@ PythonAnywhere Scheduled Task에서 매일 실행하여 캐시 파일 갱신
 """
 
 import os
+import sys
 import json
 import pandas as pd
 import requests
 import io
-from datetime import datetime
+from datetime import datetime, timedelta
 import urllib3
+
+# 현재 스크립트의 디렉토리를 sys.path에 추가 (etf_monitor import를 위해)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # SSL 경고 무시
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -164,20 +168,135 @@ def update_search_engine_cache():
     return result
 
 
+def update_os_cache():
+    """OS Market Share 데이터 캐시 갱신"""
+    print(f"[{datetime.now()}] OS Market Share 캐시 갱신 시작...")
+
+    result = {}
+    START_DATE = "2019-01"
+
+    for device_key, device_val in [('desktop', 'desktop'), ('mobile', 'mobile'), ('tablet', 'tablet')]:
+        print(f"  - {device_key} 데이터 수집 중...")
+        df = fetch_statcounter_data(metric="os", device=device_val, from_year="2019")
+
+        if not df.empty:
+            df = df.sort_index()
+            df = df[df.index >= START_DATE]
+
+            data = {'dates': df.index.tolist()}
+            for col in df.columns:
+                values = df[col].tolist()
+                data[col] = [round(v, 2) if pd.notna(v) else None for v in values]
+            result[device_key] = data
+            print(f"    완료: {len(df)}개월 데이터 (2019-01 이후)")
+        else:
+            result[device_key] = {'dates': [], 'error': 'No data'}
+            print(f"    실패: 데이터 없음")
+
+    # 캐시 디렉토리 생성
+    os.makedirs(CACHE_DIR, exist_ok=True)
+
+    # JSON 파일로 저장
+    cache_file = os.path.join(CACHE_DIR, 'os_market_share.json')
+    with open(cache_file, 'w', encoding='utf-8') as f:
+        json.dump(result, f, ensure_ascii=False)
+
+    print(f"[{datetime.now()}] 캐시 저장 완료: {cache_file}")
+    return result
+
+
+def update_active_etf_cache():
+    """Active ETF 최근 7일 데이터 캐시 갱신"""
+    print(f"[{datetime.now()}] Active ETF 캐시 갱신 시작...")
+
+    try:
+        from etf_monitor import TimeETFMonitor, KiwoomETFMonitor
+    except ImportError as e:
+        print(f"  ERROR: etf_monitor import 실패 - {e}")
+        return
+
+    # ETF 설정
+    etf_configs = [
+        {'id': 'time_sp500', 'name': 'TIME S&P500', 'type': 'time', 'idx': '5'},
+        {'id': 'time_nasdaq100', 'name': 'TIME NASDAQ100', 'type': 'time', 'idx': '2'},
+        {'id': 'kiwoom_growth30', 'name': 'KIWOOM 미국성장기업30액티브', 'type': 'kiwoom', 'code': '459790'}
+    ]
+
+    # 데이터 디렉토리 설정 (PythonAnywhere 환경)
+    data_base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+
+    # 최근 7일 날짜 생성
+    today = datetime.now()
+    dates_to_fetch = [(today - timedelta(days=i)).strftime('%Y-%m-%d') for i in range(7)]
+
+    print(f"  조회 날짜: {dates_to_fetch}")
+
+    for etf_config in etf_configs:
+        etf_id = etf_config['id']
+        etf_name = etf_config['name']
+        etf_type = etf_config['type']
+
+        print(f"\n  [{etf_name}] 데이터 수집 중...")
+
+        # Monitor 인스턴스 생성
+        if etf_type == 'time':
+            data_dir = os.path.join(data_base_dir, 'time_etf')
+            monitor = TimeETFMonitor(
+                etf_idx=etf_config['idx'],
+                etf_name=etf_name,
+                data_dir=data_dir
+            )
+        elif etf_type == 'kiwoom':
+            data_dir = os.path.join(data_base_dir, 'kiwoom_etf')
+            monitor = KiwoomETFMonitor(data_dir=data_dir)
+        else:
+            print(f"    ERROR: Unknown ETF type: {etf_type}")
+            continue
+
+        # 최근 7일 데이터 수집
+        success_count = 0
+        for date_str in dates_to_fetch:
+            try:
+                df = monitor.get_portfolio_data(date_str)
+                if not df.empty:
+                    success_count += 1
+                    print(f"    ✓ {date_str}: {len(df)}개 종목")
+                else:
+                    print(f"    ✗ {date_str}: 데이터 없음")
+            except Exception as e:
+                print(f"    ✗ {date_str}: 오류 - {e}")
+
+        print(f"    완료: {success_count}/{len(dates_to_fetch)}일 데이터 수집")
+
+    print(f"\n[{datetime.now()}] Active ETF 캐시 갱신 완료")
+    print(f"  데이터 저장 위치: {data_base_dir}")
+    return True
+
+
 def main():
     """메인 함수 - 모든 캐시 갱신"""
     print("=" * 60)
     print(f"캐시 갱신 스크립트 시작: {datetime.now()}")
     print("=" * 60)
 
-    # Search Engine 캐시 갱신
-    update_search_engine_cache()
+    try:
+        # 1. Search Engine 캐시 갱신
+        update_search_engine_cache()
+        print()
 
-    # 추후 다른 데이터 캐시도 여기에 추가 가능
-    # update_browser_cache()
-    # update_os_cache()
+        # 2. OS Market Share 캐시 갱신
+        update_os_cache()
+        print()
 
-    print("=" * 60)
+        # 3. Active ETF 캐시 갱신 (최근 7일)
+        update_active_etf_cache()
+
+    except Exception as e:
+        print(f"\n❌ 오류 발생: {e}")
+        import traceback
+        traceback.print_exc()
+
+    print("\n" + "=" * 60)
     print(f"캐시 갱신 완료: {datetime.now()}")
     print("=" * 60)
 

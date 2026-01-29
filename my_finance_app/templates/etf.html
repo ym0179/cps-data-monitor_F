@@ -155,7 +155,16 @@
     document.addEventListener('DOMContentLoaded', function() {
         // 오늘 날짜로 설정
         const today = new Date().toISOString().split('T')[0];
-        document.getElementById('datePicker').value = today;
+        const datePicker = document.getElementById('datePicker');
+        datePicker.value = today;
+
+        // 최근 7일로 날짜 제한 (캐시된 데이터만 조회)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const minDate = sevenDaysAgo.toISOString().split('T')[0];
+
+        datePicker.setAttribute('min', minDate);
+        datePicker.setAttribute('max', today);
 
         // Tab 클릭 이벤트
         document.querySelectorAll('.tab-button').forEach(btn => {
