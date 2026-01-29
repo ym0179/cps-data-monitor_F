@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Earnings Trading - MAS Finance{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 py-3">
+
+    <!-- 페이지 헤더 -->
+    <div class="page-header">
+        <h1 class="page-title">
+            <i class="bi bi-graph-up-arrow text-primary me-2"></i>
+            Earnings Event Trading
+        </h1>
+        <p class="text-muted mb-0">GS 5-Factor 기반 Idio Score로 알파 발굴</p>
+    </div>
+
+    <!-- VIX 상태 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-muted mb-1">현재 VIX</h6>
+                    <h3 class="mb-0" id="vix-value">--</h3>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-success" id="vix-status">정상</span>
+                    <p class="small text-muted mb-0 mt-1">시장 변동성 지표</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 어닝 캘린더 -->
+    <div class="card mb-4">
+        <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="bi bi-calendar-event me-2"></i>이번 주 실적 발표</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>날짜</th>
+                            <th>종목</th>
+                            <th>예상 EPS</th>
+                            <th>Idio Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="earnings-table">
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">
+                                <i class="bi bi-arrow-clockwise me-2"></i>데이터 로딩 중...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 종목 분석 -->
+    <div class="card">
+        <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="bi bi-search me-2"></i>종목별 분석</h6>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-12 col-md-8">
+                    <select class="form-select" id="stock-select">
+                        <option value="">종목을 선택하세요</option>
+                        <option value="AAPL">AAPL - Apple</option>
+                        <option value="MSFT">MSFT - Microsoft</option>
+                        <option value="NVDA">NVDA - Nvidia</option>
+                        <option value="GOOGL">GOOGL - Alphabet</option>
+                        <option value="AMZN">AMZN - Amazon</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <button class="btn btn-primary w-100" id="analyze-btn">
+                        <i class="bi bi-lightning-charge me-1"></i>분석하기
+                    </button>
+                </div>
+            </div>
+
+            <!-- 분석 결과 (나중에 동적으로 채움) -->
+            <div id="analysis-result" class="mt-4" style="display: none;">
+                <hr>
+                <h6>분석 결과</h6>
+                <div class="row g-3">
+                    <div class="col-6 col-md-3">
+                        <div class="text-center p-3 bg-light rounded">
+                            <small class="text-muted">Idio Score</small>
+                            <h4 class="mb-0 text-primary" id="result-idio">--</h4>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="text-center p-3 bg-light rounded">
+                            <small class="text-muted">Raw Score</small>
+                            <h4 class="mb-0" id="result-raw">--</h4>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="text-center p-3 bg-light rounded">
+                            <small class="text-muted">VIX 배수</small>
+                            <h4 class="mb-0" id="result-vix">--</h4>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="text-center p-3 bg-light rounded">
+                            <small class="text-muted">변동성</small>
+                            <h4 class="mb-0" id="result-vol">--</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 분석 버튼 클릭
+    document.getElementById('analyze-btn').addEventListener('click', function() {
+        const stock = document.getElementById('stock-select').value;
+        if (!stock) {
+            alert('종목을 선택하세요');
+            return;
+        }
+
+        // TODO: 실제 API 호출
+        document.getElementById('analysis-result').style.display = 'block';
+        document.getElementById('result-idio').textContent = '0.85';
+        document.getElementById('result-raw').textContent = '0.71';
+        document.getElementById('result-vix').textContent = '1.2x';
+        document.getElementById('result-vol').textContent = '23.5%';
+    });
+});
+</script>
+{% endblock %}

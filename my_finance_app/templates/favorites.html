@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}관심종목 - MAS Finance{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 py-3">
+
+    <!-- 페이지 헤더 -->
+    <div class="page-header">
+        <h1 class="page-title">
+            <i class="bi bi-heart-fill text-danger me-2"></i>
+            관심종목
+        </h1>
+    </div>
+
+    <!-- 로그인 안내 (비로그인 상태) -->
+    <div class="card mb-4" id="login-prompt">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-person-circle text-muted" style="font-size: 4rem;"></i>
+            <h5 class="mt-3">로그인이 필요합니다</h5>
+            <p class="text-muted">관심종목을 저장하고 관리하려면 로그인하세요</p>
+            <a href="#" class="btn btn-primary">로그인</a>
+            <a href="#" class="btn btn-outline-secondary ms-2">회원가입</a>
+        </div>
+    </div>
+
+    <!-- 관심종목 리스트 (로그인 후) - 현재는 숨김 -->
+    <div id="favorites-list" style="display: none;">
+        <!-- 관심종목 추가 버튼 -->
+        <div class="d-flex justify-content-end mb-3">
+            <a href="/search" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus me-1"></i>종목 추가
+            </a>
+        </div>
+
+        <!-- 관심종목 카드들 -->
+        <div class="list-group">
+            <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <button class="btn btn-link text-danger p-0 me-3">
+                            <i class="bi bi-heart-fill"></i>
+                        </button>
+                        <div>
+                            <h6 class="mb-0">NVDA</h6>
+                            <small class="text-muted">Nvidia Corp.</small>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <span class="fw-bold">$875.30</span>
+                        <small class="text-success d-block">▲ 12.50 (+1.45%)</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <button class="btn btn-link text-danger p-0 me-3">
+                            <i class="bi bi-heart-fill"></i>
+                        </button>
+                        <div>
+                            <h6 class="mb-0">AAPL</h6>
+                            <small class="text-muted">Apple Inc.</small>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <span class="fw-bold">$185.50</span>
+                        <small class="text-danger d-block">▼ 2.30 (-1.22%)</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 알림 설정 -->
+        <div class="card mt-4">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-bell me-2"></i>알림 설정</h6>
+            </div>
+            <div class="card-body">
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" id="alert-price">
+                    <label class="form-check-label" for="alert-price">목표가 도달 알림</label>
+                </div>
+                <div class="form-check form-switch mb-2">
+                    <input class="form-check-input" type="checkbox" id="alert-earnings">
+                    <label class="form-check-label" for="alert-earnings">실적 발표 알림</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="alert-news">
+                    <label class="form-check-label" for="alert-news">주요 뉴스 알림</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
