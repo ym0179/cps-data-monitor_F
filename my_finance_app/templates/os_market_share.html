@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}OS Market Share - Market Data{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 py-3">
+    <!-- 헤더 -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="mb-1"><i class="bi bi-phone text-primary me-2"></i>OS Market Share</h4>
+            <p class="text-muted mb-0">
+                <small>Data Source: <a href="https://gs.statcounter.com/os-market-share" target="_blank">StatCounter Global Stats</a> (2009 ~ Present)</small>
+            </p>
+        </div>
+        <div>
+            <a href="/market/search-engine" class="btn btn-outline-secondary btn-sm me-2">
+                <i class="bi bi-search me-1"></i>Search Engine M/S
+            </a>
+        </div>
+    </div>
+
+    <!-- OS Market Share 섹션 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <span class="fw-bold"><i class="bi bi-phone me-2"></i>Mobile & Tablet OS Market Share</span>
+            <div class="btn-group ms-3" role="group">
+                <input type="radio" class="btn-check" name="osDevice" id="osMobile" value="mobile" checked>
+                <label class="btn btn-outline-primary btn-sm" for="osMobile">Mobile</label>
+                <input type="radio" class="btn-check" name="osDevice" id="osTablet" value="tablet">
+                <label class="btn btn-outline-primary btn-sm" for="osTablet">Tablet</label>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="osChart" style="height: 450px;">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Loading data...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<script>
+// OS Chart
+function loadOSChart(device) {
+    fetch(`/api/os-rivalry?device=${device}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                document.getElementById('osChart').innerHTML = '<p class="text-danger text-center py-5">Failed to load data</p>';
+                return;
+            }
+
+            const traces = [];
+            const colors = { 'Android': '#3DDC84', 'iOS': '#555555' };
+
+            for (const [name, values] of Object.entries(data.series)) {
+                // null/NaN 값을 필터링하고 유효한 데이터만 사용
+                const validData = [];
+                const validDates = [];
+                for (let i = 0; i < values.length; i++) {
+                    if (values[i] !== null && values[i] !== undefined && !isNaN(values[i]) && values[i] > 0) {
+                        validData.push(values[i]);
+                        validDates.push(data.dates[i]);
+                    }
+                }
+
+                traces.push({
+                    x: validDates,
+                    y: validData,
+                    name: name,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { width: 3, color: colors[name] },
+                    connectgaps: false,  // null 값에서 선 끊기
+                    hovertemplate: '%{fullData.name}<br>%{x}<br>%{y:.2f}%<extra></extra>'
+                });
+            }
+
+            const layout = {
+                title: `Mobile OS Market Share (${device})`,
+                xaxis: { title: 'Date' },
+                yaxis: { title: 'Market Share (%)', range: [0, 100] },
+                hovermode: 'x unified',
+                legend: { orientation: 'h', y: -0.2 }
+            };
+
+            Plotly.newPlot('osChart', traces, layout, {responsive: true});
+        })
+        .catch(err => {
+            console.error('Error loading OS data:', err);
+            document.getElementById('osChart').innerHTML = '<p class="text-danger text-center py-5">Error loading data</p>';
+        });
+}
+
+// Event Listeners
+document.querySelectorAll('input[name="osDevice"]').forEach(radio => {
+    radio.addEventListener('change', (e) => loadOSChart(e.target.value));
+});
+
+// Initial load
+loadOSChart('mobile');
+</script>
+{% endblock %}

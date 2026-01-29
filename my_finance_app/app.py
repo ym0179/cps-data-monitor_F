@@ -449,13 +449,19 @@ def index():
 
 @app.route('/market')
 def market():
-    """Market Data - 메인 (Browser/OS M/S)"""
-    return render_template('market.html')
+    """Market Data - Search Engine으로 리다이렉트"""
+    from flask import redirect, url_for
+    return redirect(url_for('search_engine'))
 
 @app.route('/market/search-engine')
 def search_engine():
     """Market Data - Search Engine M/S 페이지"""
     return render_template('search_engine.html')
+
+@app.route('/market/os-market-share')
+def os_market_share():
+    """Market Data - OS Market Share 페이지"""
+    return render_template('os_market_share.html')
 
 @app.route('/earnings')
 def earnings():
