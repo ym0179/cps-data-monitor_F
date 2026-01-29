@@ -1136,8 +1136,8 @@ def api_earnings_calendar():
             cache_mtime = os.path.getmtime(cache_filepath)
             cache_age_hours = (datetime.now().timestamp() - cache_mtime) / 3600
 
-            # Use cache if less than 1 hour old
-            if cache_age_hours < 1:
+            # Use cache if less than 24 hours old
+            if cache_age_hours < 24:
                 with open(cache_filepath, 'r', encoding='utf-8') as f:
                     cached_data = json.load(f)
                 print(f"✓ Earnings cache hit: {cache_filename} (age: {cache_age_hours:.1f}h)")
