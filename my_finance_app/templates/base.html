@@ -5,41 +5,165 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}고객상품전략팀{% endblock %}</title>
 
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#030213',
+                        'primary-foreground': '#ffffff',
+                        secondary: '#f3f3f5',
+                        'secondary-foreground': '#030213',
+                        muted: '#ececf0',
+                        'muted-foreground': '#717182',
+                        accent: '#e9ebef',
+                        'accent-foreground': '#030213',
+                        border: 'rgba(0, 0, 0, 0.1)',
+                    },
+                    borderRadius: {
+                        'lg': '0.625rem',
+                        'xl': '0.875rem',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Bootstrap Icons (아이콘만 사용) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- Custom CSS -->
-    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+
+    <style>
+        /* 기본 스타일 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #ffffff;
+        }
+
+        /* Figma 디자인 기반 커스텀 Card 스타일 */
+        .card-custom {
+            background: white;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 0.875rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: box-shadow 0.2s;
+        }
+
+        .card-custom:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Figma 디자인 기반 Button 스타일 */
+        .btn-custom {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            outline: none;
+            border: 1px solid transparent;
+            text-decoration: none;
+        }
+
+        .btn-custom:focus-visible {
+            ring: 3px;
+            ring-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-custom-default {
+            background-color: #030213;
+            color: white;
+        }
+
+        .btn-custom-default:hover {
+            background-color: rgba(3, 2, 19, 0.9);
+        }
+
+        .btn-custom-outline {
+            border-color: rgba(0, 0, 0, 0.1);
+            background-color: white;
+            color: #030213;
+        }
+
+        .btn-custom-outline:hover {
+            background-color: #e9ebef;
+        }
+
+        .btn-custom-ghost {
+            background-color: transparent;
+            color: #717182;
+        }
+
+        .btn-custom-ghost:hover {
+            background-color: #e9ebef;
+            color: #030213;
+        }
+
+        .btn-custom-sm {
+            height: 2rem;
+            padding: 0 0.75rem;
+        }
+
+        .btn-custom-md {
+            height: 2.25rem;
+            padding: 0.5rem 1rem;
+        }
+    </style>
 
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="min-h-screen bg-white">
     <!-- ============================================ -->
-    <!-- 상단 헤더 -->
+    <!-- 상단 헤더 (Figma 디자인 적용) -->
     <!-- ============================================ -->
-    <header class="header">
-        <div class="container-fluid">
-            <div class="d-flex justify-content-between align-items-center py-2">
-                <!-- 로고 -->
-                <a href="/" class="logo">
-                    <span class="logo-text">고객상품전략팀</span>
-                    <small class="logo-subtitle d-none d-sm-inline">AI 투자 대시보드</small>
-                </a>
+    <header class="border-b bg-white sticky top-0 z-50">
+        <div class="container mx-auto px-4 md:px-6">
+            <div class="flex items-center justify-between h-16">
+                <!-- 로고/브랜드 -->
+                <div class="flex items-center space-x-8">
+                    <a href="/" class="no-underline">
+                        <h1 class="text-xl font-semibold text-gray-900">고객상품전략팀</h1>
+                    </a>
 
-                <!-- 우측 메뉴 (데스크톱) -->
-                <div class="d-none d-md-flex align-items-center gap-2">
-                    <a href="#" class="btn btn-outline-primary btn-sm">로그인</a>
-                    <a href="#" class="btn btn-primary btn-sm">가입하기</a>
-                    <button class="btn btn-link" data-bs-toggle="offcanvas" data-bs-target="#sideMenu">
-                        <i class="bi bi-list fs-4"></i>
-                    </button>
+                    <!-- 네비게이션 링크 (데스크톱) -->
+                    <nav class="hidden md:flex items-center space-x-1">
+                        <a href="/" class="px-4 py-2 rounded-md text-sm font-medium transition-colors {% if request.endpoint == 'index' %}bg-gray-100 text-gray-900{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-50{% endif %}">
+                            홈
+                        </a>
+                        <a href="/market/search-engine" class="px-4 py-2 rounded-md text-sm font-medium transition-colors {% if 'market' in request.endpoint %}bg-gray-100 text-gray-900{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-50{% endif %}">
+                            Market Data
+                        </a>
+                        <a href="/etf" class="px-4 py-2 rounded-md text-sm font-medium transition-colors {% if request.endpoint == 'etf' %}bg-gray-100 text-gray-900{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-50{% endif %}">
+                            Active ETF
+                        </a>
+                        <a href="/earnings" class="px-4 py-2 rounded-md text-sm font-medium transition-colors {% if request.endpoint == 'earnings' %}bg-gray-100 text-gray-900{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-50{% endif %}">
+                            Earnings Trading
+                        </a>
+                    </nav>
                 </div>
 
-                <!-- 우측 메뉴 (모바일) -->
-                <div class="d-md-none">
-                    <button class="btn btn-link p-0" data-bs-toggle="offcanvas" data-bs-target="#sideMenu">
-                        <i class="bi bi-list fs-3"></i>
+                <!-- 로그인/가입 -->
+                <div class="flex items-center space-x-2">
+                    <a href="#" class="btn-custom btn-custom-ghost btn-custom-sm hidden md:inline-flex">
+                        로그인
+                    </a>
+                    <a href="#" class="btn-custom btn-custom-default btn-custom-sm hidden md:inline-flex">
+                        가입하기
+                    </a>
+                    <!-- 모바일 메뉴 버튼 -->
+                    <button class="md:hidden p-2" onclick="toggleMobileMenu()">
+                        <i class="bi bi-list text-2xl"></i>
                     </button>
                 </div>
             </div>
@@ -47,86 +171,42 @@
     </header>
 
     <!-- ============================================ -->
-    <!-- 사이드 메뉴 (오프캔버스) -->
+    <!-- 모바일 메뉴 -->
     <!-- ============================================ -->
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="sideMenu">
-        <div class="offcanvas-header">
-            <h5 class="offcanvas-title">메뉴</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
-        </div>
-        <div class="offcanvas-body">
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a class="nav-link" href="/"><i class="bi bi-house me-2"></i>홈</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/earnings"><i class="bi bi-graph-up me-2"></i>Earnings Trading</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/etf"><i class="bi bi-pie-chart me-2"></i>Active ETF</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" data-bs-toggle="collapse" href="#marketDataMenu" role="button">
-                        <i class="bi bi-bar-chart me-2"></i>Market Data
-                        <i class="bi bi-chevron-down float-end"></i>
-                    </a>
-                    <div class="collapse" id="marketDataMenu">
-                        <ul class="nav flex-column ms-3">
-                            <li class="nav-item">
-                                <a class="nav-link py-1" href="/market/search-engine">
-                                    <i class="bi bi-search me-2"></i>Search Engine M/S
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link py-1" href="/market/os-market-share">
-                                    <i class="bi bi-phone me-2"></i>OS Market Share
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </li>
-            </ul>
-            <hr>
-            <div class="d-md-none">
-                <a href="#" class="btn btn-outline-primary w-100 mb-2">로그인</a>
-                <a href="#" class="btn btn-primary w-100">가입하기</a>
+    <div id="mobileMenu" class="hidden md:hidden border-b bg-white">
+        <nav class="container mx-auto px-4 py-3 space-y-1">
+            <a href="/" class="block px-4 py-2 rounded-md text-sm font-medium transition-colors {% if request.endpoint == 'index' %}bg-gray-100 text-gray-900{% else %}text-gray-600{% endif %}">
+                <i class="bi bi-house mr-2"></i>홈
+            </a>
+            <a href="/market/search-engine" class="block px-4 py-2 rounded-md text-sm font-medium transition-colors {% if 'market' in request.endpoint %}bg-gray-100 text-gray-900{% else %}text-gray-600{% endif %}">
+                <i class="bi bi-bar-chart mr-2"></i>Market Data
+            </a>
+            <a href="/etf" class="block px-4 py-2 rounded-md text-sm font-medium transition-colors {% if request.endpoint == 'etf' %}bg-gray-100 text-gray-900{% else %}text-gray-600{% endif %}">
+                <i class="bi bi-pie-chart mr-2"></i>Active ETF
+            </a>
+            <a href="/earnings" class="block px-4 py-2 rounded-md text-sm font-medium transition-colors {% if request.endpoint == 'earnings' %}bg-gray-100 text-gray-900{% else %}text-gray-600{% endif %}">
+                <i class="bi bi-graph-up mr-2"></i>Earnings Trading
+            </a>
+            <div class="pt-2 space-y-2">
+                <a href="#" class="btn-custom btn-custom-outline btn-custom-sm w-full">로그인</a>
+                <a href="#" class="btn-custom btn-custom-default btn-custom-sm w-full">가입하기</a>
             </div>
-        </div>
+        </nav>
     </div>
 
     <!-- ============================================ -->
     <!-- 메인 콘텐츠 -->
     <!-- ============================================ -->
-    <main class="main-content">
+    <main class="container mx-auto px-4 md:px-6 py-6 md:py-8">
         {% block content %}{% endblock %}
     </main>
 
-    <!-- ============================================ -->
-    <!-- 하단 네비게이션 (모바일) -->
-    <!-- ============================================ -->
-    <nav class="bottom-nav d-md-none">
-        <a href="/" class="bottom-nav-item {% if request.endpoint == 'index' %}active{% endif %}">
-            <i class="bi bi-house"></i>
-            <span>홈</span>
-        </a>
-        <a href="/search" class="bottom-nav-item {% if request.endpoint == 'search' %}active{% endif %}">
-            <i class="bi bi-search"></i>
-            <span>검색</span>
-        </a>
-        <a href="/earnings" class="bottom-nav-item {% if request.endpoint == 'earnings' %}active{% endif %}">
-            <i class="bi bi-graph-up"></i>
-            <span>추천/신호</span>
-        </a>
-        <a href="/etf" class="bottom-nav-item {% if request.endpoint == 'etf' %}active{% endif %}">
-            <i class="bi bi-newspaper"></i>
-            <span>뉴스/발굴</span>
-        </a>
-    </nav>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Custom JS -->
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        }
+    </script>
 
     {% block extra_js %}{% endblock %}
 </body>

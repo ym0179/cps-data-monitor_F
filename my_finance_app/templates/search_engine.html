@@ -4,6 +4,7 @@
 
 {% block extra_css %}
 <style>
+    /* 데이터 테이블 스타일 */
     .data-table {
         font-size: 11px;
         overflow-x: auto;
@@ -11,15 +12,16 @@
     .data-table table {
         min-width: 100%;
         border-collapse: collapse;
+        width: 100%;
     }
     .data-table th, .data-table td {
-        padding: 4px 6px;
+        padding: 6px 8px;
         text-align: center;
-        border: 1px solid #ddd;
+        border: 1px solid #e5e7eb;
         white-space: nowrap;
     }
     .data-table th {
-        background: #f5f5f5;
+        background: #f9fafb;
         font-weight: 600;
         position: sticky;
         left: 0;
@@ -38,148 +40,150 @@
     .bg-other { background-color: #fafafa !important; }
     .bg-bing { background-color: #ffc7ce !important; color: #9c0006; }
 
-    .section-title {
-        background: linear-gradient(90deg, #198754 0%, #20c997 100%);
-        color: white;
-        padding: 8px 15px;
-        font-weight: 600;
-        margin-bottom: 0;
-    }
     .chart-container {
-        height: 400px;
-    }
-    .filter-section {
-        background: #f8f9fa;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-    }
-    /* 날짜 입력 스타일 */
-    .date-input {
-        width: 100px;
-        text-align: center;
+        height: 320px;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-3 py-3">
+<div class="space-y-6">
     <!-- 헤더 -->
-    <div class="mb-3">
-        <h4 class="mb-1"><i class="bi bi-search text-success me-2"></i>Search Engine M/S</h4>
-        <p class="text-muted mb-0">
-            <small>Data Source: <a href="https://gs.statcounter.com/search-engine-market-share" target="_blank">StatCounter Global Stats</a> (Jan 2019 ~ Present)</small>
+    <div>
+        <div class="flex items-center space-x-2">
+            <h1 class="text-3xl font-semibold text-gray-900">Search Engine Market Share</h1>
+            <i class="bi bi-info-circle text-gray-400 w-4 h-4"></i>
+        </div>
+        <p class="text-gray-600 mt-1 text-sm">
+            Market share percentage by search engine • Data Source: <a href="https://gs.statcounter.com/search-engine-market-share" target="_blank" class="text-blue-600 hover:underline">StatCounter Global Stats</a> (Jan 2019 ~ Present)
         </p>
     </div>
 
-    <!-- 날짜 필터 섹션 -->
-    <div class="filter-section">
-        <div class="row align-items-center">
-            <div class="col-auto">
-                <label class="form-label mb-0 fw-bold"><i class="bi bi-calendar-range me-1"></i>기간 선택:</label>
-            </div>
-            <div class="col-auto">
-                <input type="text" id="filterFrom" class="form-control form-control-sm date-input" list="dateListFrom" placeholder="YYYY-MM">
-                <datalist id="dateListFrom"></datalist>
-            </div>
-            <div class="col-auto">
-                <span class="text-muted">~</span>
-            </div>
-            <div class="col-auto">
-                <input type="text" id="filterTo" class="form-control form-control-sm date-input" list="dateListTo" placeholder="YYYY-MM">
-                <datalist id="dateListTo"></datalist>
-            </div>
-            <div class="col-auto">
-                <button id="btnApplyFilter" class="btn btn-primary btn-sm">
-                    <i class="bi bi-funnel me-1"></i>적용
+    <!-- 필터 섹션 -->
+    <div class="card-custom">
+        <div class="p-4">
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="flex items-center gap-2">
+                    <label class="text-sm font-medium text-gray-700">
+                        <i class="bi bi-calendar-range mr-1"></i>기간 선택:
+                    </label>
+                    <input type="text" id="filterFrom" class="px-3 py-1.5 border border-gray-300 rounded-md text-sm w-24 text-center" list="dateListFrom" placeholder="YYYY-MM">
+                    <datalist id="dateListFrom"></datalist>
+                    <span class="text-gray-500">~</span>
+                    <input type="text" id="filterTo" class="px-3 py-1.5 border border-gray-300 rounded-md text-sm w-24 text-center" list="dateListTo" placeholder="YYYY-MM">
+                    <datalist id="dateListTo"></datalist>
+                </div>
+                <button id="btnApplyFilter" class="btn-custom btn-custom-default btn-custom-sm">
+                    <i class="bi bi-funnel"></i> 적용
                 </button>
-                <button id="btnResetFilter" class="btn btn-outline-secondary btn-sm ms-1">
-                    <i class="bi bi-arrow-counterclockwise me-1"></i>전체보기
+                <button id="btnResetFilter" class="btn-custom btn-custom-outline btn-custom-sm">
+                    <i class="bi bi-arrow-counterclockwise"></i> 전체보기
                 </button>
-            </div>
-            <div class="col-auto ms-3">
-                <div class="btn-group btn-group-sm" role="group">
-                    <button type="button" class="btn btn-outline-primary quick-filter" data-months="12">1Y</button>
-                    <button type="button" class="btn btn-outline-primary quick-filter" data-months="36">3Y</button>
-                    <button type="button" class="btn btn-outline-primary quick-filter" data-months="60">5Y</button>
-                    <button type="button" class="btn btn-outline-primary quick-filter active" data-months="0">All</button>
+                <div class="flex items-center bg-gray-100 rounded-md p-1 ml-2">
+                    <button type="button" class="quick-filter px-3 py-1 text-xs font-medium rounded transition-colors hover:bg-white hover:shadow-sm" data-months="12">1Y</button>
+                    <button type="button" class="quick-filter px-3 py-1 text-xs font-medium rounded transition-colors hover:bg-white hover:shadow-sm" data-months="36">3Y</button>
+                    <button type="button" class="quick-filter px-3 py-1 text-xs font-medium rounded transition-colors hover:bg-white hover:shadow-sm" data-months="60">5Y</button>
+                    <button type="button" class="quick-filter active px-3 py-1 text-xs font-medium rounded bg-white shadow-sm" data-months="0">All</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 차트 섹션 (위에 배치) -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-header py-2">
-                    <small class="fw-bold">Search Engine M/S (%, Desktop+Mobile)</small>
-                </div>
-                <div class="card-body p-2">
-                    <div id="chartDesktopMobile" class="chart-container">
-                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+    <!-- 차트 섹션 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="card-custom">
+            <div class="px-6 pt-6">
+                <h4 class="font-medium text-gray-900">Desktop+Mobile</h4>
+                <p class="text-xs text-gray-500 mt-0.5">Combined market share (%)</p>
+            </div>
+            <div class="px-6 pb-6">
+                <div id="chartDesktopMobile" class="chart-container">
+                    <div class="flex items-center justify-center h-full">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-header py-2">
-                    <small class="fw-bold">Search Engine M/S (%, Desktop)</small>
-                </div>
-                <div class="card-body p-2">
-                    <div id="chartDesktop" class="chart-container">
-                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+
+        <div class="card-custom">
+            <div class="px-6 pt-6">
+                <h4 class="font-medium text-gray-900">Desktop</h4>
+                <p class="text-xs text-gray-500 mt-0.5">Desktop only (%)</p>
+            </div>
+            <div class="px-6 pb-6">
+                <div id="chartDesktop" class="chart-container">
+                    <div class="flex items-center justify-center h-full">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-header py-2">
-                    <small class="fw-bold">Search Engine M/S (%, Mobile)</small>
-                </div>
-                <div class="card-body p-2">
-                    <div id="chartMobile" class="chart-container">
-                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+
+        <div class="card-custom">
+            <div class="px-6 pt-6">
+                <h4 class="font-medium text-gray-900">Mobile</h4>
+                <p class="text-xs text-gray-500 mt-0.5">Mobile only (%)</p>
+            </div>
+            <div class="px-6 pb-6">
+                <div id="chartMobile" class="chart-container">
+                    <div class="flex items-center justify-center h-full">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 데이터 테이블 섹션 (아래에 배치) -->
-    <div class="card">
-        <div class="section-title d-flex justify-content-between align-items-center">
-            <span>Search Engine M/S Data Table</span>
-            <a href="/api/search-engine/download" class="btn btn-light btn-sm">
-                <i class="bi bi-file-earmark-excel me-1"></i>Excel 다운로드
+    <!-- 데이터 테이블 섹션 -->
+    <div class="card-custom">
+        <div class="flex items-center justify-between px-6 pt-6">
+            <div>
+                <h4 class="font-medium text-gray-900">Data Table</h4>
+                <p class="text-xs text-gray-500 mt-0.5">Detailed market share data</p>
+            </div>
+            <a href="/api/search-engine/download" class="btn-custom btn-custom-outline btn-custom-sm">
+                <i class="bi bi-download"></i> Export
             </a>
         </div>
-        <div class="card-body p-2">
+        <div class="px-6 pb-6">
             <!-- Desktop+Mobile 테이블 -->
-            <div class="mb-3">
-                <h6 class="text-muted mb-2"><i class="bi bi-display me-1"></i>Desktop + Mobile</h6>
+            <div class="mb-4 mt-4">
+                <h6 class="text-sm font-medium text-gray-700 mb-2">
+                    <i class="bi bi-display mr-1"></i>Desktop + Mobile
+                </h6>
                 <div class="data-table" id="tableDesktopMobile">
-                    <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Loading...</div>
+                    <div class="flex items-center justify-center py-8">
+                        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+                    </div>
                 </div>
             </div>
 
             <!-- Desktop 테이블 -->
-            <div class="mb-3">
-                <h6 class="text-muted mb-2"><i class="bi bi-pc-display me-1"></i>Desktop</h6>
+            <div class="mb-4">
+                <h6 class="text-sm font-medium text-gray-700 mb-2">
+                    <i class="bi bi-pc-display mr-1"></i>Desktop
+                </h6>
                 <div class="data-table" id="tableDesktop">
-                    <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Loading...</div>
+                    <div class="flex items-center justify-center py-8">
+                        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+                    </div>
                 </div>
             </div>
 
             <!-- Mobile 테이블 -->
-            <div class="mb-3">
-                <h6 class="text-muted mb-2"><i class="bi bi-phone me-1"></i>Mobile</h6>
+            <div>
+                <h6 class="text-sm font-medium text-gray-700 mb-2">
+                    <i class="bi bi-phone mr-1"></i>Mobile
+                </h6>
                 <div class="data-table" id="tableMobile">
-                    <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Loading...</div>
+                    <div class="flex items-center justify-center py-8">
+                        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+                    </div>
                 </div>
             </div>
+        </div>
+        <div class="px-6 pb-6 text-xs text-gray-500 border-t pt-4 mt-2">
+            <p>Last updated: <span id="lastUpdated"></span></p>
         </div>
     </div>
 </div>
@@ -188,12 +192,12 @@
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 
 <script>
-// 색상 설정 (첨부 이미지와 동일하게)
+// 색상 설정
 const COLORS = {
-    'Google': '#4285F4',   // Google Blue (파란색)
-    'Yahoo': '#808080',    // Gray (회색)
-    'Other': '#C0C0C0',    // Light Gray (연회색)
-    'Bing': '#EA4335'      // Red (빨간색)
+    'Google': '#4285F4',
+    'Yahoo': '#808080',
+    'Other': '#C0C0C0',
+    'Bing': '#EA4335'
 };
 
 // 전역 데이터 저장
@@ -223,7 +227,6 @@ function populateDateFilters(dates) {
         toList.innerHTML += `<option value="${d}">`;
     });
 
-    // 초기값 설정
     document.getElementById('filterFrom').value = dates[0];
     document.getElementById('filterTo').value = dates[dates.length - 1];
 }
@@ -250,11 +253,11 @@ function filterDataByDateRange(data, fromDate, toDate) {
     return filtered;
 }
 
-// 테이블 생성 함수 (소수점 2자리)
+// 테이블 생성 함수
 function createTable(containerId, data, suffix) {
     const container = document.getElementById(containerId);
     if (!data || !data.dates || data.dates.length === 0) {
-        container.innerHTML = '<p class="text-muted text-center py-3">No data available</p>';
+        container.innerHTML = '<p class="text-center text-gray-500 py-4">No data available</p>';
         return;
     }
 
@@ -283,30 +286,16 @@ function createTable(containerId, data, suffix) {
     container.innerHTML = html;
 }
 
-// 로딩 스피너 제거
-function clearLoading(containerId) {
-    const container = document.getElementById(containerId);
-    if (container) {
-        container.innerHTML = '';
-    }
-}
-
-// 차트 렌더링 타임아웃 ID (경합 조건 방지)
-let chartRenderTimeout = null;
-
-// 스택형 막대 차트 생성 (이미지와 동일한 스타일)
+// 스택형 막대 차트 생성
 function createStackedBarChart(containerId, data) {
     const container = document.getElementById(containerId);
-
-    // 먼저 로딩 스피너 제거
     container.innerHTML = '';
 
     if (!data || !data.dates || data.dates.length === 0) {
-        container.innerHTML = '<p class="text-muted text-center py-5">No data available</p>';
+        container.innerHTML = '<p class="text-center text-gray-500 flex items-center justify-center h-full">No data available</p>';
         return;
     }
 
-    // 스택 순서: 아래부터 Bing, Other, Yahoo, Google (위로 갈수록 큰 값)
     const engines = ['Bing', 'Other', 'Yahoo', 'Google'].filter(e => data[e]);
 
     try {
@@ -315,10 +304,10 @@ function createStackedBarChart(containerId, data) {
             y: data[engine].map(v => v || 0),
             name: engine,
             type: 'bar',
-            marker: { color: COLORS[engine] }
+            marker: { color: COLORS[engine] },
+            hovertemplate: '%{fullData.name}<br>%{x}<br>%{y:.2f}%<extra></extra>'
         }));
 
-        // x축 tick 간격 계산
         const dataLength = data.dates.length;
         let dtick = 6;
         if (dataLength <= 24) dtick = 3;
@@ -327,7 +316,7 @@ function createStackedBarChart(containerId, data) {
 
         const layout = {
             barmode: 'stack',
-            margin: { t: 10, b: 80, l: 40, r: 10 },
+            margin: { t: 10, b: 60, l: 40, r: 10 },
             xaxis: {
                 tickangle: -45,
                 tickfont: { size: 9 },
@@ -341,13 +330,15 @@ function createStackedBarChart(containerId, data) {
             },
             legend: {
                 orientation: 'h',
-                y: -0.3,
+                y: -0.25,
                 x: 0.5,
                 xanchor: 'center',
                 font: { size: 10 }
             },
             showlegend: true,
-            hovermode: 'x unified'
+            hovermode: 'x unified',
+            paper_bgcolor: 'white',
+            plot_bgcolor: 'white'
         };
 
         const config = {
@@ -355,19 +346,10 @@ function createStackedBarChart(containerId, data) {
             displayModeBar: false
         };
 
-        // 각 trace에 hovertemplate 추가 (소수점 2자리)
-        traces.forEach(trace => {
-            trace.hovertemplate = '%{fullData.name}<br>%{x}<br>%{y:.2f}%<extra></extra>';
-        });
-
-        Plotly.newPlot(containerId, traces, layout, config)
-            .catch(err => {
-                console.error('Plotly render error:', err);
-                container.innerHTML = '<p class="text-danger text-center py-5">차트 렌더링 실패</p>';
-            });
+        Plotly.newPlot(containerId, traces, layout, config);
     } catch (err) {
         console.error('Chart creation error:', err);
-        container.innerHTML = '<p class="text-danger text-center py-5">차트 생성 오류</p>';
+        container.innerHTML = '<p class="text-center text-red-600 flex items-center justify-center h-full">차트 생성 오류</p>';
     }
 }
 
@@ -375,27 +357,19 @@ function createStackedBarChart(containerId, data) {
 function renderAll(data) {
     if (!data) return;
 
-    // 이전 타임아웃 취소 (경합 조건 방지)
-    if (chartRenderTimeout) {
-        clearTimeout(chartRenderTimeout);
-        chartRenderTimeout = null;
-    }
-
-    // 먼저 모든 로딩 스피너 제거
-    ['chartDesktopMobile', 'chartDesktop', 'chartMobile'].forEach(clearLoading);
-
-    // 테이블 생성
     createTable('tableDesktopMobile', data.desktop_mobile, 'Desktop+Mobile');
     createTable('tableDesktop', data.desktop, 'Desktop');
     createTable('tableMobile', data.mobile, 'Mobile');
 
-    // 차트 생성 (약간 지연 후 렌더링하여 DOM 업데이트 보장)
-    chartRenderTimeout = setTimeout(() => {
+    setTimeout(() => {
         createStackedBarChart('chartDesktopMobile', data.desktop_mobile);
         createStackedBarChart('chartDesktop', data.desktop);
         createStackedBarChart('chartMobile', data.mobile);
-        chartRenderTimeout = null;
     }, 50);
+
+    // Last updated 설정
+    const now = new Date();
+    document.getElementById('lastUpdated').textContent = now.toLocaleString('ko-KR');
 }
 
 // 필터 적용
@@ -405,7 +379,6 @@ function applyFilter() {
 
     if (!globalData) return;
 
-    // 입력값 검증
     if (!allDates.includes(fromDate) || !allDates.includes(toDate)) {
         alert('유효한 날짜를 입력해주세요. (예: 2019-01)');
         return;
@@ -429,8 +402,10 @@ function resetFilter() {
     document.getElementById('filterTo').value = dates[dates.length - 1];
 
     document.querySelectorAll('.quick-filter').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.dataset.months === '0') btn.classList.add('active');
+        btn.classList.remove('active', 'bg-white', 'shadow-sm');
+        if (btn.dataset.months === '0') {
+            btn.classList.add('active', 'bg-white', 'shadow-sm');
+        }
     });
 
     renderAll(globalData);
@@ -457,23 +432,24 @@ function applyQuickFilter(months) {
     applyFilter();
 }
 
-// 이벤트 리스너 설정
+// 이벤트 리스너
 document.getElementById('btnApplyFilter').addEventListener('click', applyFilter);
 document.getElementById('btnResetFilter').addEventListener('click', resetFilter);
 
 document.querySelectorAll('.quick-filter').forEach(btn => {
     btn.addEventListener('click', function() {
-        document.querySelectorAll('.quick-filter').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
+        document.querySelectorAll('.quick-filter').forEach(b => {
+            b.classList.remove('active', 'bg-white', 'shadow-sm');
+        });
+        this.classList.add('active', 'bg-white', 'shadow-sm');
         applyQuickFilter(parseInt(this.dataset.months));
     });
 });
 
-// Enter 키로 필터 적용
 document.getElementById('filterFrom').addEventListener('keypress', e => { if (e.key === 'Enter') applyFilter(); });
 document.getElementById('filterTo').addEventListener('keypress', e => { if (e.key === 'Enter') applyFilter(); });
 
-// 데이터 로드 및 렌더링 (30초 타임아웃 적용)
+// 데이터 로드
 const controller = new AbortController();
 const timeoutId = setTimeout(() => controller.abort(), 30000);
 
@@ -497,16 +473,8 @@ fetch('/api/search-engine/all', { signal: controller.signal })
     .catch(err => {
         clearTimeout(timeoutId);
         console.error('Error:', err);
-        let errorMsg;
-        if (err.name === 'AbortError') {
-            errorMsg = '<p class="text-danger text-center py-3">데이터 로드 시간 초과 (30초).<br><small>네트워크 상태를 확인하거나 나중에 다시 시도해주세요.</small></p>';
-        } else {
-            errorMsg = '<p class="text-danger text-center py-3">데이터 로드 실패. 캐시 파일이 없을 수 있습니다.<br><small>관리자에게 update_cache.py 실행을 요청하세요.</small></p>';
-        }
-        ['tableDesktopMobile', 'tableDesktop', 'tableMobile'].forEach(id => {
-            document.getElementById(id).innerHTML = errorMsg;
-        });
-        ['chartDesktopMobile', 'chartDesktop', 'chartMobile'].forEach(id => {
+        let errorMsg = '<p class="text-center text-red-600 py-4">데이터 로드 실패</p>';
+        ['tableDesktopMobile', 'tableDesktop', 'tableMobile', 'chartDesktopMobile', 'chartDesktop', 'chartMobile'].forEach(id => {
             document.getElementById(id).innerHTML = errorMsg;
         });
     });

@@ -4,6 +4,7 @@
 
 {% block extra_css %}
 <style>
+    /* 데이터 테이블 스타일 */
     .data-table {
         font-size: 11px;
         overflow-x: auto;
@@ -11,15 +12,16 @@
     .data-table table {
         min-width: 100%;
         border-collapse: collapse;
+        width: 100%;
     }
     .data-table th, .data-table td {
-        padding: 4px 6px;
+        padding: 6px 8px;
         text-align: center;
-        border: 1px solid #ddd;
+        border: 1px solid #e5e7eb;
         white-space: nowrap;
     }
     .data-table th {
-        background: #f5f5f5;
+        background: #f9fafb;
         font-weight: 600;
         position: sticky;
         left: 0;
@@ -36,153 +38,175 @@
     .bg-android { background-color: #c6efce !important; color: #006100; }
     .bg-ios { background-color: #f2f2f2 !important; }
 
-    .section-title {
-        background: linear-gradient(90deg, #0d6efd 0%, #20c997 100%);
-        color: white;
-        padding: 8px 15px;
-        font-weight: 600;
-        margin-bottom: 0;
-    }
     .chart-container {
-        height: 400px;
+        height: 320px;
     }
-    .filter-section {
-        background: #f8f9fa;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 20px;
+
+    /* Tab 스타일 */
+    .tab-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border-bottom: 2px solid transparent;
+        color: #6b7280;
+        transition: all 0.2s;
     }
-    /* 날짜 입력 스타일 */
-    .date-input {
-        width: 100px;
-        text-align: center;
+    .tab-btn:hover {
+        color: #111827;
+    }
+    .tab-btn.active {
+        color: #111827;
+        border-bottom-color: #111827;
+    }
+    .tab-content {
+        display: none;
+    }
+    .tab-content.active {
+        display: block;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-3 py-3">
+<div class="space-y-6">
     <!-- 헤더 -->
-    <div class="mb-3">
-        <h4 class="mb-1"><i class="bi bi-phone text-primary me-2"></i>OS Market Share</h4>
-        <p class="text-muted mb-0">
-            <small>Data Source: <a href="https://gs.statcounter.com/os-market-share" target="_blank">StatCounter Global Stats</a> (Jan 2019 ~ Present)</small>
+    <div>
+        <div class="flex items-center space-x-2">
+            <h1 class="text-3xl font-semibold text-gray-900">OS Market Share</h1>
+            <i class="bi bi-info-circle text-gray-400 w-4 h-4"></i>
+        </div>
+        <p class="text-gray-600 mt-1 text-sm">
+            Android vs iOS market share comparison • Data Source: <a href="https://gs.statcounter.com/os-market-share" target="_blank" class="text-blue-600 hover:underline">StatCounter Global Stats</a> (Jan 2019 ~ Present)
         </p>
     </div>
 
-    <!-- 날짜 필터 섹션 -->
-    <div class="filter-section">
-        <div class="row align-items-center">
-            <div class="col-auto">
-                <label class="form-label mb-0 fw-bold"><i class="bi bi-calendar-range me-1"></i>기간 선택:</label>
-            </div>
-            <div class="col-auto">
-                <input type="text" id="filterFrom" class="form-control form-control-sm date-input" list="dateListFrom" placeholder="YYYY-MM">
-                <datalist id="dateListFrom"></datalist>
-            </div>
-            <div class="col-auto">
-                <span class="text-muted">~</span>
-            </div>
-            <div class="col-auto">
-                <input type="text" id="filterTo" class="form-control form-control-sm date-input" list="dateListTo" placeholder="YYYY-MM">
-                <datalist id="dateListTo"></datalist>
-            </div>
-            <div class="col-auto">
-                <button id="btnApplyFilter" class="btn btn-primary btn-sm">
-                    <i class="bi bi-funnel me-1"></i>적용
+    <!-- 필터 섹션 -->
+    <div class="card-custom">
+        <div class="p-4">
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="flex items-center gap-2">
+                    <label class="text-sm font-medium text-gray-700">
+                        <i class="bi bi-calendar-range mr-1"></i>기간 선택:
+                    </label>
+                    <input type="text" id="filterFrom" class="px-3 py-1.5 border border-gray-300 rounded-md text-sm w-24 text-center" list="dateListFrom" placeholder="YYYY-MM">
+                    <datalist id="dateListFrom"></datalist>
+                    <span class="text-gray-500">~</span>
+                    <input type="text" id="filterTo" class="px-3 py-1.5 border border-gray-300 rounded-md text-sm w-24 text-center" list="dateListTo" placeholder="YYYY-MM">
+                    <datalist id="dateListTo"></datalist>
+                </div>
+                <button id="btnApplyFilter" class="btn-custom btn-custom-default btn-custom-sm">
+                    <i class="bi bi-funnel"></i> 적용
                 </button>
-                <button id="btnResetFilter" class="btn btn-outline-secondary btn-sm ms-1">
-                    <i class="bi bi-arrow-counterclockwise me-1"></i>전체보기
+                <button id="btnResetFilter" class="btn-custom btn-custom-outline btn-custom-sm">
+                    <i class="bi bi-arrow-counterclockwise"></i> 전체보기
                 </button>
-            </div>
-            <div class="col-auto ms-3">
-                <div class="btn-group btn-group-sm" role="group">
-                    <button type="button" class="btn btn-outline-primary quick-filter" data-months="12">1Y</button>
-                    <button type="button" class="btn btn-outline-primary quick-filter" data-months="36">3Y</button>
-                    <button type="button" class="btn btn-outline-primary quick-filter" data-months="60">5Y</button>
-                    <button type="button" class="btn btn-outline-primary quick-filter active" data-months="0">All</button>
+                <div class="flex items-center bg-gray-100 rounded-md p-1 ml-2">
+                    <button type="button" class="quick-filter px-3 py-1 text-xs font-medium rounded transition-colors hover:bg-white hover:shadow-sm" data-months="12">1Y</button>
+                    <button type="button" class="quick-filter px-3 py-1 text-xs font-medium rounded transition-colors hover:bg-white hover:shadow-sm" data-months="36">3Y</button>
+                    <button type="button" class="quick-filter px-3 py-1 text-xs font-medium rounded transition-colors hover:bg-white hover:shadow-sm" data-months="60">5Y</button>
+                    <button type="button" class="quick-filter active px-3 py-1 text-xs font-medium rounded bg-white shadow-sm" data-months="0">All</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 차트 섹션 (위에 배치) -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-header py-2">
-                    <small class="fw-bold">OS Market Share (%, Mobile)</small>
-                </div>
-                <div class="card-body p-2">
-                    <div id="chartMobile" class="chart-container">
-                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+    <!-- 차트 섹션 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="card-custom">
+            <div class="px-6 pt-6">
+                <h4 class="font-medium text-gray-900">Mobile</h4>
+                <p class="text-xs text-gray-500 mt-0.5">Mobile OS market share (%)</p>
+            </div>
+            <div class="px-6 pb-6">
+                <div id="chartMobile" class="chart-container">
+                    <div class="flex items-center justify-center h-full">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-header py-2">
-                    <small class="fw-bold">OS Market Share (%, Tablet)</small>
-                </div>
-                <div class="card-body p-2">
-                    <div id="chartTablet" class="chart-container">
-                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+
+        <div class="card-custom">
+            <div class="px-6 pt-6">
+                <h4 class="font-medium text-gray-900">Tablet</h4>
+                <p class="text-xs text-gray-500 mt-0.5">Tablet OS market share (%)</p>
+            </div>
+            <div class="px-6 pb-6">
+                <div id="chartTablet" class="chart-container">
+                    <div class="flex items-center justify-center h-full">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-header py-2">
-                    <small class="fw-bold">OS Market Share (%, Mobile+Tablet)</small>
-                </div>
-                <div class="card-body p-2">
-                    <div id="chartCombined" class="chart-container">
-                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+
+        <div class="card-custom">
+            <div class="px-6 pt-6">
+                <h4 class="font-medium text-gray-900">Mobile+Tablet</h4>
+                <p class="text-xs text-gray-500 mt-0.5">Combined market share (%)</p>
+            </div>
+            <div class="px-6 pb-6">
+                <div id="chartCombined" class="chart-container">
+                    <div class="flex items-center justify-center h-full">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 데이터 테이블 섹션 (아래에 배치) -->
-    <div class="card">
-        <div class="section-title d-flex justify-content-between align-items-center">
-            <span>OS Market Share Data Table</span>
-            <a href="#" id="btnDownloadExcel" class="btn btn-light btn-sm">
-                <i class="bi bi-file-earmark-excel me-1"></i>Excel 다운로드
-            </a>
+    <!-- 데이터 테이블 섹션 -->
+    <div class="card-custom">
+        <div class="flex items-center justify-between px-6 pt-6">
+            <div>
+                <h4 class="font-medium text-gray-900">Data Table</h4>
+                <p class="text-xs text-gray-500 mt-0.5">Detailed market share data</p>
+            </div>
+            <button id="btnDownloadExcel" class="btn-custom btn-custom-outline btn-custom-sm">
+                <i class="bi bi-download"></i> Export
+            </button>
         </div>
-        <div class="card-body p-2">
-            <ul class="nav nav-tabs mb-2" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="tab-mobile" data-bs-toggle="tab" data-bs-target="#table-mobile" type="button">Mobile</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="tab-tablet" data-bs-toggle="tab" data-bs-target="#table-tablet" type="button">Tablet</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="tab-combined" data-bs-toggle="tab" data-bs-target="#table-combined" type="button">Mobile+Tablet</button>
-                </li>
-            </ul>
-            <div class="tab-content">
-                <div class="tab-pane fade show active" id="table-mobile">
-                    <div id="tableMobile" class="data-table">
-                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+        <div class="px-6 pb-6">
+            <!-- Tabs -->
+            <div class="flex border-b mt-4">
+                <button class="tab-btn active" data-tab="mobile">
+                    <i class="bi bi-phone mr-1"></i>Mobile
+                </button>
+                <button class="tab-btn" data-tab="tablet">
+                    <i class="bi bi-tablet mr-1"></i>Tablet
+                </button>
+                <button class="tab-btn" data-tab="combined">
+                    <i class="bi bi-phone-landscape mr-1"></i>Mobile+Tablet
+                </button>
+            </div>
+
+            <!-- Tab Contents -->
+            <div class="mt-4">
+                <div class="tab-content active" data-content="mobile">
+                    <div class="data-table" id="tableMobile">
+                        <div class="flex items-center justify-center py-8">
+                            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+                        </div>
                     </div>
                 </div>
-                <div class="tab-pane fade" id="table-tablet">
-                    <div id="tableTablet" class="data-table">
-                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+                <div class="tab-content" data-content="tablet">
+                    <div class="data-table" id="tableTablet">
+                        <div class="flex items-center justify-center py-8">
+                            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+                        </div>
                     </div>
                 </div>
-                <div class="tab-pane fade" id="table-combined">
-                    <div id="tableCombined" class="data-table">
-                        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+                <div class="tab-content" data-content="combined">
+                    <div class="data-table" id="tableCombined">
+                        <div class="flex items-center justify-center py-8">
+                            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+                        </div>
                     </div>
                 </div>
             </div>
+        </div>
+        <div class="px-6 pb-6 text-xs text-gray-500 border-t pt-4 mt-2">
+            <p>Last updated: <span id="lastUpdated"></span></p>
         </div>
     </div>
 </div>
@@ -205,13 +229,26 @@ function getRowClass(name) {
     return '';
 }
 
+// Tab 전환 기능
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const tab = this.dataset.tab;
+        
+        // 탭 버튼 활성화
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        // 탭 콘텐츠 표시
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelector(`[data-content="${tab}"]`).classList.add('active');
+    });
+});
+
 // 데이터 로드
 function loadAllData() {
-    // Mobile+Tablet은 백엔드에서 직접 가져오기 (엑셀 방식과 동일)
     Promise.all([
         fetch('/api/os-rivalry?device=mobile').then(res => res.json()),
         fetch('/api/os-rivalry?device=tablet').then(res => res.json()),
-        // 백엔드에서 mobile+tablet 처리 (params 사용하면 + 기호가 보존됨)
         fetch('/api/os-rivalry-combined').then(res => res.json())
     ]).then(([mobile, tablet, combined]) => {
         rawDataMobile = mobile;
@@ -241,9 +278,13 @@ function loadAllData() {
 
         renderAllCharts();
         renderAllTables();
+
+        // Last updated 설정
+        const now = new Date();
+        document.getElementById('lastUpdated').textContent = now.toLocaleString('ko-KR');
     }).catch(err => {
         console.error('Data load error:', err);
-        const errorMsg = '<p class="text-danger text-center py-5">데이터 로드 실패</p>';
+        const errorMsg = '<p class="text-center text-red-600 py-4">데이터 로드 실패</p>';
         ['tableMobile', 'tableTablet', 'tableCombined'].forEach(id => {
             document.getElementById(id).innerHTML = errorMsg;
         });
@@ -289,14 +330,14 @@ function createTable(containerId, data, deviceName) {
         const displayData = currentFilterFrom && currentFilterTo ? filterDataByDateRange(data) : data;
 
         if (!displayData || !displayData.dates || displayData.dates.length === 0) {
-            container.innerHTML = '<p class="text-center text-muted py-3">데이터 없음</p>';
+            container.innerHTML = '<p class="text-center text-gray-500 py-4">데이터 없음</p>';
             return;
         }
 
         const dates = displayData.dates;
         const osNames = Object.keys(displayData.series);
 
-        let html = '<table class="table table-sm table-bordered table-hover mb-0"><thead><tr><th></th>';
+        let html = '<div style="overflow-x:auto;"><table><thead><tr><th></th>';
 
         // 날짜 헤더 (가로)
         dates.forEach(d => {
@@ -316,11 +357,11 @@ function createTable(containerId, data, deviceName) {
             html += '</tr>';
         });
 
-        html += '</tbody></table>';
+        html += '</tbody></table></div>';
         container.innerHTML = html;
     } catch (err) {
         console.error('Table creation error:', err);
-        container.innerHTML = '<p class="text-danger text-center py-5">테이블 생성 오류</p>';
+        container.innerHTML = '<p class="text-center text-red-600 py-4">테이블 생성 오류</p>';
     }
 }
 
@@ -329,11 +370,13 @@ function createChart(containerId, data, device) {
     const container = document.getElementById(containerId);
 
     try {
+        container.innerHTML = '';
+
         // 필터링된 데이터 사용
         const displayData = currentFilterFrom && currentFilterTo ? filterDataByDateRange(data) : data;
 
         if (!displayData || !displayData.dates || displayData.dates.length === 0) {
-            container.innerHTML = '<p class="text-center text-muted py-3">데이터 없음</p>';
+            container.innerHTML = '<p class="text-center text-gray-500 flex items-center justify-center h-full">데이터 없음</p>';
             return;
         }
 
@@ -354,18 +397,20 @@ function createChart(containerId, data, device) {
         });
 
         const layout = {
-            margin: { l: 40, r: 20, t: 10, b: 30 },
+            margin: { l: 40, r: 20, t: 10, b: 40 },
             xaxis: { title: '' },
             yaxis: { title: 'Market Share (%)', range: [0, 100] },
             hovermode: 'x unified',
             legend: {
                 orientation: 'h',
-                y: -0.3,
+                y: -0.2,
                 x: 0.5,
                 xanchor: 'center',
                 font: { size: 10 }
             },
-            showlegend: true
+            showlegend: true,
+            paper_bgcolor: 'white',
+            plot_bgcolor: 'white'
         };
 
         const config = {
@@ -373,24 +418,20 @@ function createChart(containerId, data, device) {
             displayModeBar: false
         };
 
-        // 로딩 스피너 제거 후 차트 렌더링
-        container.innerHTML = '';
-        Plotly.newPlot(containerId, traces, layout, config)
-            .catch(err => {
-                console.error('Plotly render error:', err);
-                container.innerHTML = '<p class="text-danger text-center py-5">차트 렌더링 실패</p>';
-            });
+        Plotly.newPlot(containerId, traces, layout, config);
     } catch (err) {
         console.error('Chart creation error:', err);
-        container.innerHTML = '<p class="text-danger text-center py-5">차트 생성 오류</p>';
+        container.innerHTML = '<p class="text-center text-red-600 flex items-center justify-center h-full">차트 생성 오류</p>';
     }
 }
 
 // 모든 차트 렌더링
 function renderAllCharts() {
-    createChart('chartMobile', rawDataMobile, 'mobile');
-    createChart('chartTablet', rawDataTablet, 'tablet');
-    createChart('chartCombined', rawDataCombined, 'mobile+tablet');
+    setTimeout(() => {
+        createChart('chartMobile', rawDataMobile, 'mobile');
+        createChart('chartTablet', rawDataTablet, 'tablet');
+        createChart('chartCombined', rawDataCombined, 'mobile+tablet');
+    }, 50);
 }
 
 // 모든 테이블 렌더링
@@ -415,7 +456,9 @@ document.getElementById('btnApplyFilter').addEventListener('click', () => {
         return;
     }
 
-    document.querySelectorAll('.quick-filter').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.quick-filter').forEach(btn => {
+        btn.classList.remove('active', 'bg-white', 'shadow-sm');
+    });
     renderAllCharts();
     renderAllTables();
 });
@@ -427,8 +470,10 @@ document.getElementById('btnResetFilter').addEventListener('click', () => {
         document.getElementById('filterTo').value = allDates[allDates.length - 1];
         currentFilterFrom = null;
         currentFilterTo = null;
-        document.querySelectorAll('.quick-filter').forEach(btn => btn.classList.remove('active'));
-        document.querySelector('.quick-filter[data-months="0"]').classList.add('active');
+        document.querySelectorAll('.quick-filter').forEach(btn => {
+            btn.classList.remove('active', 'bg-white', 'shadow-sm');
+        });
+        document.querySelector('.quick-filter[data-months="0"]').classList.add('active', 'bg-white', 'shadow-sm');
         renderAllCharts();
         renderAllTables();
     }
@@ -439,8 +484,10 @@ document.querySelectorAll('.quick-filter').forEach(btn => {
     btn.addEventListener('click', function() {
         const months = parseInt(this.getAttribute('data-months'));
 
-        document.querySelectorAll('.quick-filter').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
+        document.querySelectorAll('.quick-filter').forEach(b => {
+            b.classList.remove('active', 'bg-white', 'shadow-sm');
+        });
+        this.classList.add('active', 'bg-white', 'shadow-sm');
 
         if (months === 0) {
             // 전체보기
