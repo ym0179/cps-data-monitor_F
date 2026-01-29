@@ -209,11 +209,25 @@ function getRowClass(name) {
 function loadAllData() {
     Promise.all([
         fetch('/api/os-rivalry?device=mobile').then(res => res.json()),
-        fetch('/api/os-rivalry?device=tablet').then(res => res.json()),
-        fetch('/api/os-rivalry?device=' + encodeURIComponent('mobile+tablet')).then(res => res.json())
-    ]).then(([mobile, tablet, combined]) => {
+        fetch('/api/os-rivalry?device=tablet').then(res => res.json())
+    ]).then(([mobile, tablet]) => {
         rawDataMobile = mobile;
         rawDataTablet = tablet;
+
+        // Mobile + Tablet 데이터를 직접 합침 (엑셀 방식과 동일)
+        const combined = {
+            dates: mobile.dates,
+            series: {}
+        };
+
+        // Android와 iOS 데이터를 합산
+        Object.keys(mobile.series).forEach(osName => {
+            combined.series[osName] = mobile.series[osName].map((mobileVal, idx) => {
+                const tabletVal = tablet.series[osName] ? tablet.series[osName][idx] : 0;
+                return (mobileVal || 0) + (tabletVal || 0);
+            });
+        });
+
         rawDataCombined = combined;
 
         // 날짜 목록 생성 (mobile 기준)
