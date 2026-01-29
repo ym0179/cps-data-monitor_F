@@ -147,16 +147,8 @@ def fetch_analyst_consensus(ticker, retry_count=3, delay=1.5):
             if attempt > 0:
                 time.sleep(delay)
 
-            session = requests.Session()
-            session.verify = False
-            session.headers.update({
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                "Accept-Language": "en-US,en;q=0.5",
-                "Referer": "https://finance.yahoo.com/"
-            })
-
-            t = yf.Ticker(ticker, session=session)
+            # Let yfinance handle session automatically (uses curl_cffi)
+            t = yf.Ticker(ticker)
             info = t.info
 
             # Check if we got any data at all
@@ -206,13 +198,8 @@ def fetch_historical_price(ticker, years=3, retry_count=2):
             if attempt > 0:
                 time.sleep(1.0)
 
-            session = requests.Session()
-            session.verify = False
-            session.headers.update({
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-            })
-
-            t = yf.Ticker(ticker, session=session)
+            # Let yfinance handle session automatically (uses curl_cffi)
+            t = yf.Ticker(ticker)
             end_date = datetime.datetime.now()
             start_date = end_date - datetime.timedelta(days=365 * years)
 
@@ -250,13 +237,8 @@ def fetch_historical_earnings_dates(ticker, retry_count=2):
             if attempt > 0:
                 time.sleep(1.0)
 
-            session = requests.Session()
-            session.verify = False
-            session.headers.update({
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-            })
-
-            t = yf.Ticker(ticker, session=session)
+            # Let yfinance handle session automatically (uses curl_cffi)
+            t = yf.Ticker(ticker)
 
             # earnings_dates returns DataFrame with index = datetime
             earnings_dates = t.earnings_dates
