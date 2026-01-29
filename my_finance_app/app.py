@@ -26,23 +26,22 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'cps-strategy-team-2026'
 
 # =============================================================================
-# 간단한 메모리 캐시 (1시간 TTL)
+# 파일 기반 캐시 (Scheduled Task로 매일 갱신)
 # =============================================================================
-_cache = {}
-_cache_time = {}
-CACHE_TTL = 3600  # 1시간
+import os
 
-def get_cached(key):
-    """캐시에서 데이터 가져오기"""
-    if key in _cache:
-        if datetime.now().timestamp() - _cache_time[key] < CACHE_TTL:
-            return _cache[key]
+CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cache')
+
+def load_cache_file(filename):
+    """캐시 파일에서 데이터 로드"""
+    cache_path = os.path.join(CACHE_DIR, filename)
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"캐시 파일 로드 오류: {e}")
     return None
-
-def set_cached(key, value):
-    """캐시에 데이터 저장"""
-    _cache[key] = value
-    _cache_time[key] = datetime.now().timestamp()
 
 
 # =============================================================================
@@ -70,7 +69,8 @@ def set_cached(key, value):
 
 def fetch_statcounter_data(metric="browser", device="desktop", from_year="2019", from_month="01"):
     """
-    StatCounter에서 시장점유율 데이터 수집 (캐싱 적용)
+    StatCounter에서 시장점유율 데이터 수집
+    (Search Engine은 캐시 파일 사용, 다른 메트릭은 직접 호출)
 
     Parameters:
     -----------
@@ -88,14 +88,6 @@ def fetch_statcounter_data(metric="browser", device="desktop", from_year="2019",
     --------
     DataFrame with Date index and market share % for each category
     """
-    # 캐시 키 생성
-    cache_key = f"statcounter_{metric}_{device}_{from_year}_{from_month}"
-
-    # 캐시 확인
-    cached = get_cached(cache_key)
-    if cached is not None:
-        return cached
-
     now = datetime.now()
     to_year = now.year
     to_month = now.month
@@ -132,8 +124,6 @@ def fetch_statcounter_data(metric="browser", device="desktop", from_year="2019",
             # 날짜 포맷 변환: YYYY-MM
             df['Date'] = pd.to_datetime(df['Date']).dt.strftime('%Y-%m')
             df.set_index('Date', inplace=True)
-            # 캐시에 저장
-            set_cached(cache_key, df)
             return df
     except Exception as e:
         print(f"StatCounter Error: {e}")
@@ -695,7 +685,7 @@ def api_idio_score():
 def api_search_engine_all():
     """
     Search Engine 시장점유율 전체 데이터 API
-    Desktop+Mobile, Desktop, Mobile 3가지 데이터 반환
+    캐시 파일에서 로드 (Scheduled Task로 매일 갱신)
 
     Response:
     {
@@ -704,15 +694,17 @@ def api_search_engine_all():
         "mobile": { ... }
     }
     """
-    result = {}
+    # 캐시 파일에서 로드 시도
+    cached_data = load_cache_file('search_engine.json')
+    if cached_data:
+        return jsonify(cached_data)
 
+    # 캐시 파일이 없으면 API 직접 호출 (fallback)
+    result = {}
     for device_key, device_val in [('desktop_mobile', 'desktop-mobile'), ('desktop', 'desktop'), ('mobile', 'mobile')]:
         df = fetch_statcounter_data(metric="search_engine", device=device_val, from_year="2019")
         if not df.empty:
-            # Google, Yahoo, Bing, Other로 정리 (Streamlit과 동일)
             df_processed = process_search_engine_data(df)
-
-            # 날짜 오름차순 정렬
             df_processed = df_processed.sort_index()
 
             data = {'dates': df_processed.index.tolist()}
