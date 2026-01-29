@@ -34,8 +34,8 @@
     }
     /* 색상 포맷팅 */
     .bg-google { background-color: #c6efce !important; color: #006100; }
-    .bg-yahoo { background-color: #fff2cc !important; }
-    .bg-other { background-color: #f2f2f2 !important; }
+    .bg-yahoo { background-color: #f2f2f2 !important; }
+    .bg-other { background-color: #fafafa !important; }
     .bg-bing { background-color: #ffc7ce !important; color: #9c0006; }
 
     .section-title {
@@ -48,15 +48,16 @@
     .chart-container {
         height: 400px;
     }
-    .table-scroll {
-        max-height: 200px;
-        overflow-y: auto;
-    }
     .filter-section {
         background: #f8f9fa;
         padding: 15px;
         border-radius: 8px;
         margin-bottom: 20px;
+    }
+    /* 날짜 입력 스타일 */
+    .date-input {
+        width: 100px;
+        text-align: center;
     }
 </style>
 {% endblock %}
@@ -68,14 +69,11 @@
         <div>
             <h4 class="mb-1"><i class="bi bi-search text-success me-2"></i>Search Engine M/S</h4>
             <p class="text-muted mb-0">
-                <small>Data Source: <a href="https://gs.statcounter.com/search-engine-market-share" target="_blank">StatCounter Global Stats</a> (Jan 2009 ~ Present)</small>
+                <small>Data Source: <a href="https://gs.statcounter.com/search-engine-market-share" target="_blank">StatCounter Global Stats</a> (Jan 2019 ~ Present)</small>
             </p>
         </div>
         <div>
-            <a href="/api/search-engine/download" class="btn btn-success btn-sm">
-                <i class="bi bi-file-earmark-excel me-1"></i>Excel 다운로드
-            </a>
-            <a href="/market" class="btn btn-outline-secondary btn-sm ms-2">
+            <a href="/market" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-arrow-left me-1"></i>Market Data
             </a>
         </div>
@@ -88,15 +86,15 @@
                 <label class="form-label mb-0 fw-bold"><i class="bi bi-calendar-range me-1"></i>기간 선택:</label>
             </div>
             <div class="col-auto">
-                <select id="filterFrom" class="form-select form-select-sm" style="width: 140px;">
-                </select>
+                <input type="text" id="filterFrom" class="form-control form-control-sm date-input" list="dateListFrom" placeholder="YYYY-MM">
+                <datalist id="dateListFrom"></datalist>
             </div>
             <div class="col-auto">
                 <span class="text-muted">~</span>
             </div>
             <div class="col-auto">
-                <select id="filterTo" class="form-select form-select-sm" style="width: 140px;">
-                </select>
+                <input type="text" id="filterTo" class="form-control form-control-sm date-input" list="dateListTo" placeholder="YYYY-MM">
+                <datalist id="dateListTo"></datalist>
             </div>
             <div class="col-auto">
                 <button id="btnApplyFilter" class="btn btn-primary btn-sm">
@@ -159,7 +157,12 @@
 
     <!-- 데이터 테이블 섹션 (아래에 배치) -->
     <div class="card">
-        <div class="section-title">Search Engine M/S Data Table</div>
+        <div class="section-title d-flex justify-content-between align-items-center">
+            <span>Search Engine M/S Data Table</span>
+            <a href="/api/search-engine/download" class="btn btn-light btn-sm">
+                <i class="bi bi-file-earmark-excel me-1"></i>Excel 다운로드
+            </a>
+        </div>
         <div class="card-body p-2">
             <!-- Desktop+Mobile 테이블 -->
             <div class="mb-3">
@@ -192,17 +195,17 @@
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 
 <script>
-// 색상 설정 (첨부 이미지 참고)
+// 색상 설정 (첨부 이미지와 동일하게)
 const COLORS = {
-    'Google': '#4285F4',   // Google Blue
-    'Yahoo': '#6001d2',    // Yahoo Purple
-    'Other': '#999999',    // Gray
-    'Bing': '#f25022'      // Bing Red/Orange
+    'Google': '#4285F4',   // Google Blue (파란색)
+    'Yahoo': '#808080',    // Gray (회색)
+    'Other': '#C0C0C0',    // Light Gray (연회색)
+    'Bing': '#EA4335'      // Red (빨간색)
 };
 
 // 전역 데이터 저장
 let globalData = null;
-let filteredData = null;
+let allDates = [];
 
 // 행 색상 클래스 매핑
 function getRowClass(name) {
@@ -213,27 +216,23 @@ function getRowClass(name) {
     return '';
 }
 
-// 날짜 필터 옵션 생성
+// 날짜 필터 datalist 생성
 function populateDateFilters(dates) {
-    const fromSelect = document.getElementById('filterFrom');
-    const toSelect = document.getElementById('filterTo');
+    allDates = dates;
+    const fromList = document.getElementById('dateListFrom');
+    const toList = document.getElementById('dateListTo');
 
-    fromSelect.innerHTML = '';
-    toSelect.innerHTML = '';
+    fromList.innerHTML = '';
+    toList.innerHTML = '';
 
-    dates.forEach((d, i) => {
-        const optionFrom = document.createElement('option');
-        optionFrom.value = d;
-        optionFrom.text = d;
-        if (i === 0) optionFrom.selected = true;
-        fromSelect.appendChild(optionFrom);
-
-        const optionTo = document.createElement('option');
-        optionTo.value = d;
-        optionTo.text = d;
-        if (i === dates.length - 1) optionTo.selected = true;
-        toSelect.appendChild(optionTo);
+    dates.forEach(d => {
+        fromList.innerHTML += `<option value="${d}">`;
+        toList.innerHTML += `<option value="${d}">`;
     });
+
+    // 초기값 설정
+    document.getElementById('filterFrom').value = dates[0];
+    document.getElementById('filterTo').value = dates[dates.length - 1];
 }
 
 // 데이터 필터링
@@ -258,7 +257,7 @@ function filterDataByDateRange(data, fromDate, toDate) {
     return filtered;
 }
 
-// 테이블 생성 함수 (필터된 기간 전체 표시)
+// 테이블 생성 함수 (소수점 2자리)
 function createTable(containerId, data, suffix) {
     const container = document.getElementById(containerId);
     if (!data || !data.dates || data.dates.length === 0) {
@@ -267,12 +266,10 @@ function createTable(containerId, data, suffix) {
     }
 
     const dates = data.dates;
-    // 주요 검색엔진만 필터링
     const engines = ['Google', 'Yahoo', 'Other', 'Bing'].filter(e => data[e]);
 
     let html = '<div style="overflow-x:auto;"><table><thead><tr><th></th>';
 
-    // 필터된 데이터 전체 표시 (차트와 동일)
     dates.forEach(d => {
         html += `<th>${d}</th>`;
     });
@@ -283,7 +280,7 @@ function createTable(containerId, data, suffix) {
         html += `<tr class="${rowClass}"><td>${engine} (${suffix})</td>`;
 
         data[engine].forEach(v => {
-            const displayVal = v !== null ? v.toFixed(1) : '-';
+            const displayVal = v !== null ? v.toFixed(2) : '-';
             html += `<td>${displayVal}</td>`;
         });
         html += '</tr>';
@@ -293,15 +290,15 @@ function createTable(containerId, data, suffix) {
     container.innerHTML = html;
 }
 
-// 스택형 바 차트 생성 함수 (개선된 x축)
-function createStackedBarChart(containerId, data, title) {
+// 스택형 막대 차트 생성 (이미지와 동일한 스타일)
+function createStackedBarChart(containerId, data) {
     const container = document.getElementById(containerId);
     if (!data || !data.dates || data.dates.length === 0) {
         container.innerHTML = '<p class="text-muted text-center py-5">No data available</p>';
         return;
     }
 
-    // 주요 검색엔진만 사용 (순서: Google, Yahoo, Other, Bing - 스택 순서)
+    // 스택 순서: 아래부터 Bing, Other, Yahoo, Google (위로 갈수록 큰 값)
     const engines = ['Bing', 'Other', 'Yahoo', 'Google'].filter(e => data[e]);
 
     const traces = engines.map(engine => ({
@@ -309,16 +306,15 @@ function createStackedBarChart(containerId, data, title) {
         y: data[engine].map(v => v || 0),
         name: engine,
         type: 'bar',
-        marker: { color: COLORS[engine] || '#888' }
+        marker: { color: COLORS[engine] }
     }));
 
-    // x축 tick 간격 계산 (데이터 개수에 따라 동적 조정)
+    // x축 tick 간격 계산
     const dataLength = data.dates.length;
-    let dtick = 12; // 기본 12개월(1년) 간격
-    if (dataLength <= 24) dtick = 3;      // 2년 이하면 3개월 간격
-    else if (dataLength <= 60) dtick = 6; // 5년 이하면 6개월 간격
-    else if (dataLength <= 120) dtick = 12; // 10년 이하면 12개월 간격
-    else dtick = 24; // 그 이상이면 24개월 간격
+    let dtick = 6;
+    if (dataLength <= 24) dtick = 3;
+    else if (dataLength <= 48) dtick = 6;
+    else dtick = 12;
 
     const layout = {
         barmode: 'stack',
@@ -327,7 +323,6 @@ function createStackedBarChart(containerId, data, title) {
             tickangle: -45,
             tickfont: { size: 9 },
             dtick: dtick,
-            tickformat: '%Y-%m',
             type: 'category'
         },
         yaxis: {
@@ -337,7 +332,7 @@ function createStackedBarChart(containerId, data, title) {
         },
         legend: {
             orientation: 'h',
-            y: -0.25,
+            y: -0.3,
             x: 0.5,
             xanchor: 'center',
             font: { size: 10 }
@@ -370,7 +365,13 @@ function applyFilter() {
 
     if (!globalData) return;
 
-    filteredData = {
+    // 입력값 검증
+    if (!allDates.includes(fromDate) || !allDates.includes(toDate)) {
+        alert('유효한 날짜를 입력해주세요. (예: 2019-01)');
+        return;
+    }
+
+    const filteredData = {
         desktop_mobile: filterDataByDateRange(globalData.desktop_mobile, fromDate, toDate),
         desktop: filterDataByDateRange(globalData.desktop, fromDate, toDate),
         mobile: filterDataByDateRange(globalData.mobile, fromDate, toDate)
@@ -381,14 +382,12 @@ function applyFilter() {
 
 // 필터 리셋
 function resetFilter() {
-    if (!globalData) return;
+    if (!globalData || !globalData.desktop_mobile.dates) return;
 
-    // 날짜 선택기 리셋
     const dates = globalData.desktop_mobile.dates;
     document.getElementById('filterFrom').value = dates[0];
     document.getElementById('filterTo').value = dates[dates.length - 1];
 
-    // Quick filter 버튼 리셋
     document.querySelectorAll('.quick-filter').forEach(btn => {
         btn.classList.remove('active');
         if (btn.dataset.months === '0') btn.classList.add('active');
@@ -406,7 +405,7 @@ function applyQuickFilter(months) {
 
     let fromDate;
     if (months === 0) {
-        fromDate = dates[0]; // All data
+        fromDate = dates[0];
     } else {
         const fromIdx = Math.max(0, dates.length - months);
         fromDate = dates[fromIdx];
@@ -424,36 +423,41 @@ document.getElementById('btnResetFilter').addEventListener('click', resetFilter)
 
 document.querySelectorAll('.quick-filter').forEach(btn => {
     btn.addEventListener('click', function() {
-        // 활성 상태 토글
         document.querySelectorAll('.quick-filter').forEach(b => b.classList.remove('active'));
         this.classList.add('active');
-
-        const months = parseInt(this.dataset.months);
-        applyQuickFilter(months);
+        applyQuickFilter(parseInt(this.dataset.months));
     });
 });
 
+// Enter 키로 필터 적용
+document.getElementById('filterFrom').addEventListener('keypress', e => { if (e.key === 'Enter') applyFilter(); });
+document.getElementById('filterTo').addEventListener('keypress', e => { if (e.key === 'Enter') applyFilter(); });
+
 // 데이터 로드 및 렌더링
 fetch('/api/search-engine/all')
-    .then(res => res.json())
+    .then(res => {
+        if (!res.ok) throw new Error('API Error: ' + res.status);
+        return res.json();
+    })
     .then(data => {
+        console.log('Data loaded:', data);
         globalData = data;
 
-        // 날짜 필터 옵션 생성
-        if (data.desktop_mobile && data.desktop_mobile.dates) {
+        if (data.desktop_mobile && data.desktop_mobile.dates && data.desktop_mobile.dates.length > 0) {
             populateDateFilters(data.desktop_mobile.dates);
+            renderAll(data);
+        } else {
+            throw new Error('No data in response');
         }
-
-        // 초기 렌더링
-        renderAll(data);
     })
     .catch(err => {
         console.error('Error:', err);
+        const errorMsg = '<p class="text-danger text-center py-3">데이터 로드 실패. 캐시 파일이 없을 수 있습니다.<br><small>관리자에게 update_cache.py 실행을 요청하세요.</small></p>';
         ['tableDesktopMobile', 'tableDesktop', 'tableMobile'].forEach(id => {
-            document.getElementById(id).innerHTML = '<p class="text-danger text-center py-3">Failed to load data</p>';
+            document.getElementById(id).innerHTML = errorMsg;
         });
         ['chartDesktopMobile', 'chartDesktop', 'chartMobile'].forEach(id => {
-            document.getElementById(id).innerHTML = '<p class="text-danger text-center py-5">Failed to load chart</p>';
+            document.getElementById(id).innerHTML = errorMsg;
         });
     });
 </script>
