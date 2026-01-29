@@ -722,19 +722,41 @@ def api_search_engine_all():
 def api_search_engine_download():
     """
     Search Engine 데이터 Excel 다운로드 API
+    Google, Yahoo, Other, Bing 정리된 표 3개 포함
     """
     output = io.BytesIO()
 
+    # 캐시 파일에서 로드 시도
+    cached_data = load_cache_file('search_engine.json')
+
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        for device_key, device_val, sheet_name in [
-            ('desktop_mobile', 'desktop-mobile', 'Desktop+Mobile'),
-            ('desktop', 'desktop', 'Desktop'),
-            ('mobile', 'mobile', 'Mobile')
+        for device_key, sheet_name in [
+            ('desktop_mobile', 'Desktop+Mobile'),
+            ('desktop', 'Desktop'),
+            ('mobile', 'Mobile')
         ]:
-            df = fetch_statcounter_data(metric="search_engine", device=device_val, from_year="2019")
-            if not df.empty:
-                # 인덱스(날짜)를 컬럼으로 변환
-                df_export = df.reset_index()
+            if cached_data and device_key in cached_data:
+                # 캐시 데이터 사용
+                data = cached_data[device_key]
+                df_export = pd.DataFrame({
+                    'Date': data['dates'],
+                    'Google': data.get('Google', []),
+                    'Yahoo': data.get('Yahoo', []),
+                    'Other': data.get('Other', []),
+                    'Bing': data.get('Bing', [])
+                })
+            else:
+                # Fallback: API 직접 호출
+                device_val = 'desktop-mobile' if device_key == 'desktop_mobile' else device_key
+                df = fetch_statcounter_data(metric="search_engine", device=device_val, from_year="2019")
+                if not df.empty:
+                    df_processed = process_search_engine_data(df)
+                    df_processed = df_processed.sort_index()
+                    df_export = df_processed.reset_index()
+                else:
+                    df_export = pd.DataFrame()
+
+            if not df_export.empty:
                 df_export.to_excel(writer, sheet_name=sheet_name, index=False)
 
     output.seek(0)
