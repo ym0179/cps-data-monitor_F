@@ -25,6 +25,25 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'cps-strategy-team-2026'
 
+# =============================================================================
+# 간단한 메모리 캐시 (1시간 TTL)
+# =============================================================================
+_cache = {}
+_cache_time = {}
+CACHE_TTL = 3600  # 1시간
+
+def get_cached(key):
+    """캐시에서 데이터 가져오기"""
+    if key in _cache:
+        if datetime.now().timestamp() - _cache_time[key] < CACHE_TTL:
+            return _cache[key]
+    return None
+
+def set_cached(key, value):
+    """캐시에 데이터 저장"""
+    _cache[key] = value
+    _cache_time[key] = datetime.now().timestamp()
+
 
 # =============================================================================
 # 1. MS Monitoring (StatCounter)
@@ -51,7 +70,7 @@ app.config['SECRET_KEY'] = 'cps-strategy-team-2026'
 
 def fetch_statcounter_data(metric="browser", device="desktop", from_year="2009", from_month="01"):
     """
-    StatCounter에서 시장점유율 데이터 수집
+    StatCounter에서 시장점유율 데이터 수집 (캐싱 적용)
 
     Parameters:
     -----------
@@ -69,6 +88,14 @@ def fetch_statcounter_data(metric="browser", device="desktop", from_year="2009",
     --------
     DataFrame with Date index and market share % for each category
     """
+    # 캐시 키 생성
+    cache_key = f"statcounter_{metric}_{device}_{from_year}_{from_month}"
+
+    # 캐시 확인
+    cached = get_cached(cache_key)
+    if cached is not None:
+        return cached
+
     now = datetime.now()
     to_year = now.year
     to_month = now.month
@@ -105,6 +132,8 @@ def fetch_statcounter_data(metric="browser", device="desktop", from_year="2009",
             # 날짜 포맷 변환: YYYY-MM
             df['Date'] = pd.to_datetime(df['Date']).dt.strftime('%Y-%m')
             df.set_index('Date', inplace=True)
+            # 캐시에 저장
+            set_cached(cache_key, df)
             return df
     except Exception as e:
         print(f"StatCounter Error: {e}")
