@@ -500,6 +500,53 @@ def get_score_insight(score, ticker):
         return f"Low Impact: {ticker}의 실적 발표를 제외해도 효율성 차이가 거의 없습니다. (Delta: {score})"
 
 
+# VIX 관련 함수
+import yfinance as yf
+
+def fetch_vix_history(years=10):
+    """
+    VIX 지수 히스토리 데이터 가져오기
+
+    Args:
+        years: 조회할 연도 (default: 10년)
+
+    Returns:
+        dict: {dates: [...], values: [...]}
+    """
+    try:
+        vix = yf.Ticker("^VIX")
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=365 * years)
+
+        hist = vix.history(start=start_date, end=end_date)
+
+        if not hist.empty:
+            # 날짜와 Close 가격 추출
+            dates = [d.strftime('%Y-%m-%d') for d in hist.index]
+            values = hist['Close'].tolist()
+
+            return {
+                'dates': dates,
+                'values': values,
+                'current': round(values[-1], 2) if values else None
+            }
+    except Exception as e:
+        print(f"VIX fetch error: {e}")
+
+    return {'dates': [], 'values': [], 'current': None}
+
+def get_vix_current():
+    """현재 VIX 값 가져오기"""
+    try:
+        vix = yf.Ticker("^VIX")
+        hist = vix.history(period="1d")
+        if not hist.empty:
+            return round(hist['Close'].iloc[-1], 2)
+    except:
+        pass
+    return None
+
+
 # =============================================================================
 # 라우트 (페이지 렌더링)
 # =============================================================================
@@ -806,13 +853,31 @@ def api_etf_data(etf_id):
         # 이전 영업일 찾기
         prev_date = monitor.get_previous_business_day(date_str)
 
-        # 리밸런싱 분석
+        # 리밸런싱 분석 (캐시 우선, 없으면 실시간 계산)
         rebalancing = None
         if prev_date:
-            df_prev = monitor.load_data(prev_date)
-            if df_prev is not None and not df_prev.empty:
-                # Pass dates for Yahoo Finance price-based rebalancing analysis
-                rebalancing = monitor.analyze_rebalancing(df_today, df_prev, date_str, prev_date)
+            # 1. 캐시된 리밸런싱 결과 확인
+            rebalancing_cache_dir = os.path.join(CACHE_DIR, 'rebalancing')
+            cache_filename = f"{etf_id}_{date_str}_vs_{prev_date}.json"
+            cache_filepath = os.path.join(rebalancing_cache_dir, cache_filename)
+
+            if os.path.exists(cache_filepath):
+                # 캐시 사용 (빠름)
+                try:
+                    with open(cache_filepath, 'r', encoding='utf-8') as f:
+                        rebalancing = json.load(f)
+                    print(f"✓ Rebalancing cache hit: {cache_filename}")
+                except Exception as e:
+                    print(f"✗ Rebalancing cache load error: {e}")
+                    rebalancing = None
+
+            # 2. 캐시 없으면 실시간 계산 (느림)
+            if rebalancing is None:
+                df_prev = monitor.load_data(prev_date)
+                if df_prev is not None and not df_prev.empty:
+                    print(f"⚠ Rebalancing cache miss, computing real-time (slow)...")
+                    # Pass dates for Yahoo Finance price-based rebalancing analysis
+                    rebalancing = monitor.analyze_rebalancing(df_today, df_prev, date_str, prev_date)
 
         # ETF 정보
         etf_info = next((etf for etf in ETF_CONFIG if etf['id'] == etf_id), None)
@@ -989,6 +1054,28 @@ def api_os_rivalry_download():
     except Exception as e:
         print(f"Excel download error: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+# =============================================================================
+# Earnings Trading API
+# =============================================================================
+
+@app.route('/api/vix/history')
+def api_vix_history():
+    """
+    VIX 히스토리 데이터 API
+    Query Parameters:
+    - years: 조회 연도 (default: 10)
+    """
+    years = int(request.args.get('years', 10))
+    data = fetch_vix_history(years)
+    return jsonify(data)
+
+@app.route('/api/vix/current')
+def api_vix_current():
+    """현재 VIX 값 API"""
+    vix_val = get_vix_current()
+    return jsonify({'vix': vix_val})
 
 
 if __name__ == '__main__':

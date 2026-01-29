@@ -206,7 +206,7 @@ def update_os_cache():
 
 
 def update_active_etf_cache():
-    """Active ETF 최근 7일 데이터 캐시 갱신"""
+    """Active ETF 최근 7일 데이터 캐시 갱신 (포트폴리오 + 리밸런싱 결과)"""
     print(f"[{datetime.now()}] Active ETF 캐시 갱신 시작...")
 
     try:
@@ -224,6 +224,8 @@ def update_active_etf_cache():
 
     # 데이터 디렉토리 설정 (PythonAnywhere 환경)
     data_base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+    rebalancing_cache_dir = os.path.join(CACHE_DIR, 'rebalancing')
+    os.makedirs(rebalancing_cache_dir, exist_ok=True)
 
     # 최근 7일 날짜 생성
     today = datetime.now()
@@ -253,23 +255,59 @@ def update_active_etf_cache():
             print(f"    ERROR: Unknown ETF type: {etf_type}")
             continue
 
-        # 최근 7일 데이터 수집
+        # 최근 7일 포트폴리오 데이터 수집
         success_count = 0
+        valid_dates = []
         for date_str in dates_to_fetch:
             try:
                 df = monitor.get_portfolio_data(date_str)
                 if not df.empty:
                     success_count += 1
+                    valid_dates.append(date_str)
                     print(f"    ✓ {date_str}: {len(df)}개 종목")
                 else:
                     print(f"    ✗ {date_str}: 데이터 없음")
             except Exception as e:
                 print(f"    ✗ {date_str}: 오류 - {e}")
 
-        print(f"    완료: {success_count}/{len(dates_to_fetch)}일 데이터 수집")
+        print(f"    포트폴리오 수집 완료: {success_count}/{len(dates_to_fetch)}일")
+
+        # 리밸런싱 결과 계산 및 캐시 (연속된 날짜 쌍)
+        if len(valid_dates) >= 2:
+            print(f"    리밸런싱 결과 캐시 생성 중...")
+            rebalancing_count = 0
+
+            for i in range(len(valid_dates) - 1):
+                current_date = valid_dates[i]
+                previous_date = valid_dates[i + 1]
+
+                try:
+                    # 리밸런싱 분석 실행
+                    rebalancing_result = monitor.analyze_rebalancing(current_date, previous_date)
+
+                    if rebalancing_result:
+                        # 캐시 파일명: {etf_id}_{current_date}_vs_{previous_date}.json
+                        cache_filename = f"{etf_id}_{current_date}_vs_{previous_date}.json"
+                        cache_filepath = os.path.join(rebalancing_cache_dir, cache_filename)
+
+                        with open(cache_filepath, 'w', encoding='utf-8') as f:
+                            json.dump(rebalancing_result, f, ensure_ascii=False, indent=2)
+
+                        rebalancing_count += 1
+                        print(f"      ✓ {current_date} vs {previous_date}")
+                    else:
+                        print(f"      ✗ {current_date} vs {previous_date}: 결과 없음")
+
+                except Exception as e:
+                    print(f"      ✗ {current_date} vs {previous_date}: 오류 - {e}")
+
+            print(f"    리밸런싱 캐시 완료: {rebalancing_count}개")
+        else:
+            print(f"    리밸런싱 캐시 건너뜀 (유효 날짜 부족)")
 
     print(f"\n[{datetime.now()}] Active ETF 캐시 갱신 완료")
-    print(f"  데이터 저장 위치: {data_base_dir}")
+    print(f"  포트폴리오 저장 위치: {data_base_dir}")
+    print(f"  리밸런싱 캐시 위치: {rebalancing_cache_dir}")
     return True
 
 

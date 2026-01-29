@@ -2,229 +2,394 @@
 
 {% block title %}Earnings Trading - 고객상품전략팀{% endblock %}
 
+{% block extra_css %}
+<style>
+    .stat-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    .vix-insight {
+        font-size: 0.8125rem;
+        line-height: 1.6;
+        color: #4b5563;
+    }
+
+    .vix-insight strong {
+        color: #1f2937;
+        font-weight: 600;
+    }
+
+    .vix-insight .subtitle {
+        font-size: 0.75rem;
+        color: #9ca3af;
+        margin-left: 0.5rem;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 350px;
+    }
+
+    .earnings-table {
+        font-size: 0.875rem;
+    }
+
+    .earnings-table th {
+        background-color: #f9fafb;
+        font-weight: 600;
+        color: #374151;
+        padding: 0.75rem;
+    }
+
+    .earnings-table td {
+        padding: 0.75rem;
+        vertical-align: middle;
+    }
+
+    .badge-score {
+        padding: 0.375rem 0.75rem;
+        font-weight: 600;
+    }
+
+    .loading-spinner {
+        border: 3px solid #f3f4f6;
+        border-top: 3px solid #3b82f6;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid px-3 py-3">
-    <h4 class="mb-4"><i class="bi bi-graph-up-arrow text-primary me-2"></i>Earnings Idio Score Dashboard</h4>
-    <p class="text-muted mb-4">골드만삭스 방법론 기반: 실적 발표일 고유 변동성(Alpha) 분석</p>
+<div class="container mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-3xl font-semibold text-gray-900">Earnings Trading</h1>
+        <p class="text-gray-600 mt-1">Goldman Sachs methodology: Idiosyncratic volatility analysis on earnings dates</p>
+    </div>
 
-    <!-- VIX 지표 -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-1">VIX Index (Market Fear)</h6>
-                            <h3 id="vixValue" class="mb-0">-</h3>
-                        </div>
-                        <div id="vixStatus" class="badge bg-secondary fs-6">Loading...</div>
+    <!-- VIX Chart Section -->
+    <div class="card stat-card mb-6">
+        <div class="card-body p-6">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h5 class="font-semibold text-gray-900 mb-1">VIX Index (Market Volatility)</h5>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <span class="stat-value" id="vixValue">-</span>
+                        <span id="vixChange" class="text-sm"></span>
                     </div>
                 </div>
+                <div>
+                    <span id="vixBadge" class="badge bg-secondary">Loading...</span>
+                </div>
             </div>
-        </div>
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-body">
-                    <h6 class="text-muted mb-2">GS Strategy Insight: VIX 수준에 따른 실적 이벤트 성과</h6>
-                    <div class="row small">
-                        <div class="col-md-4">
-                            <span class="badge bg-success me-1">최적 구간</span>
-                            <strong>VIX 35~45</strong>
-                            <p class="text-muted mb-0">실적 발표가 불확실성 해소로 작용</p>
-                        </div>
-                        <div class="col-md-4">
-                            <span class="badge bg-primary me-1">안정 구간</span>
-                            <strong>VIX 35 이하</strong>
-                            <p class="text-muted mb-0">시장 대비 소폭 상회</p>
-                        </div>
-                        <div class="col-md-4">
-                            <span class="badge bg-danger me-1">위험 구간</span>
-                            <strong>VIX 45 초과</strong>
-                            <p class="text-muted mb-0">극단적 공포, 언더퍼폼</p>
-                        </div>
+
+            <!-- VIX Chart -->
+            <div class="chart-container mb-4">
+                <canvas id="vixChart"></canvas>
+            </div>
+
+            <!-- GS Strategy Insight -->
+            <div class="vix-insight p-4" style="background-color: #f9fafb; border-radius: 8px;">
+                <div class="mb-2" style="font-weight: 600; color: #1f2937;">*GS Strategy Insight: VIX 수준에 따른 실적 이벤트 성과</div>
+                <div class="mb-2">
+                    <span style="color: #6b7280;">-</span> VIX 수준은 실적 이벤트 트레이드 성과에 유의미한 영향을 미침
+                </div>
+                <div class="ps-3">
+                    <div class="mb-1">
+                        <strong>최적 구간 (VIX 35~45):</strong>
+                        <span class="subtitle">거시 불확실성이 높은 환경에서 실적 발표가 불확실성 해소(Relief Rally)로 작용</span>
+                    </div>
+                    <div class="mb-1">
+                        <strong>안정~불안 (VIX 35 이하):</strong>
+                        <span class="subtitle">주가 변동폭은 작고 방향성은 불확실하나, 평균적으로 시장을 소폭 상회</span>
+                    </div>
+                    <div>
+                        <strong>위험 구간 (VIX 45 초과):</strong>
+                        <span class="subtitle">극단적 공포 국면. 실적 발표로 신뢰 회복이 어려우며, 시장 대비 언더퍼폼</span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 종목 검색 -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <i class="bi bi-search me-1"></i>종목 분석
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-4">
-                    <label class="form-label">티커 입력</label>
-                    <input type="text" class="form-control" id="tickerInput" placeholder="예: AAPL, MSFT, NVDA">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">섹터</label>
-                    <select class="form-select" id="sectorSelect">
-                        <option value="Technology">Technology</option>
-                        <option value="Healthcare">Healthcare</option>
-                        <option value="Financials">Financials</option>
-                        <option value="Consumer">Consumer</option>
-                        <option value="Energy">Energy</option>
-                        <option value="Industrials">Industrials</option>
-                    </select>
-                </div>
-                <div class="col-md-4 d-flex align-items-end">
-                    <button class="btn btn-primary" id="analyzeBtn">
-                        <i class="bi bi-lightning me-1"></i>Idio Score 분석
-                    </button>
-                </div>
+    <!-- Earnings Events Section -->
+    <div class="card stat-card">
+        <div class="card-header bg-white border-bottom py-3 px-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="font-semibold text-gray-900 mb-0">Earnings Events</h5>
+                <button class="btn btn-sm btn-outline-primary" id="refreshBtn">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                </button>
             </div>
         </div>
-    </div>
+        <div class="card-body p-0">
+            <!-- Loading State -->
+            <div id="loadingState" class="text-center py-5">
+                <div class="loading-spinner mx-auto mb-3"></div>
+                <p class="text-gray-600">Loading earnings data...</p>
+            </div>
 
-    <!-- 분석 결과 -->
-    <div id="resultArea" style="display: none;">
-        <div class="row mb-4">
-            <div class="col-md-2">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h6 class="text-muted">Idio Score</h6>
-                        <h2 id="idioScore" class="text-primary">-</h2>
-                    </div>
+            <!-- Table -->
+            <div id="tableContainer" style="display: none;">
+                <div class="table-responsive">
+                    <table class="table table-hover earnings-table mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 10%;">Ticker</th>
+                                <th style="width: 25%;">Company Name</th>
+                                <th style="width: 10%;">Date</th>
+                                <th style="width: 10%;" class="text-center">Idio Score</th>
+                                <th style="width: 10%;" class="text-end">Mkt Beta</th>
+                                <th style="width: 10%;" class="text-end">Daily Ret</th>
+                                <th style="width: 10%;" class="text-end">Daily Vol</th>
+                                <th style="width: 10%;" class="text-center">VIX Mult</th>
+                                <th style="width: 5%;" class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="earningsTableBody">
+                            <!-- Data will be populated here -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            <div class="col-md-2">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h6 class="text-muted">Market Beta</h6>
-                        <h3 id="marketBeta">-</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-2">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h6 class="text-muted">Sector Beta</h6>
-                        <h3 id="sectorBeta">-</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h6 class="text-muted">Avg Daily Return</h6>
-                        <h3 id="avgReturn">-</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h6 class="text-muted">Daily Volatility</h6>
-                        <h3 id="dailyVol">-</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- 인사이트 -->
-        <div class="alert alert-info" id="insightAlert">
-            <i class="bi bi-lightbulb me-2"></i>
-            <span id="insightText">분석 결과가 여기에 표시됩니다.</span>
-        </div>
-    </div>
-
-    <!-- Idio Score 설명 -->
-    <div class="card">
-        <div class="card-header">
-            <i class="bi bi-info-circle me-1"></i>Idio Score 산출 로직 (Goldman Sachs Method)
-        </div>
-        <div class="card-body small">
-            <h6>1. 5-Factor Modeling</h6>
-            <p class="text-muted">시장(Market), 섹터(Sector), 스타일(Size, Value, Momentum) 요인을 제거하여 순수한 종목 고유의 움직임(Idiosyncratic Return)을 추출합니다.</p>
-
-            <h6>2. Regression Model (Trailing 3 Years)</h6>
-            <p class="text-muted">R<sub>i,t</sub> = α + β<sub>Mkt</sub>Mkt + β<sub>Sec</sub>Sec + β<sub>SMB</sub>SMB + β<sub>HML</sub>HML + β<sub>Mom</sub>MOM + ε</p>
-
-            <h6>3. Delta Score (GS Method)</h6>
-            <p class="text-muted">
-                <strong>ΔScore = Score<sub>incl</sub> - Score<sub>excl</sub></strong><br>
-                점수가 높을수록(+), 변동성을 감수하고서라도 실적 발표를 가져가는 것이 유리합니다. (Earnings Alpha 존재)
-            </p>
+            <!-- Empty State -->
+            <div id="emptyState" class="text-center py-5" style="display: none;">
+                <i class="bi bi-inbox text-gray-400" style="font-size: 3rem;"></i>
+                <p class="text-gray-600 mt-3">No earnings events found</p>
+                <p class="text-gray-500 small">Try adjusting your date range or refresh the data</p>
+            </div>
         </div>
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-// VIX 로드 (Yahoo Finance에서 가져오기 어려우므로 시뮬레이션)
-function loadVIX() {
-    // 실제로는 API에서 가져와야 함
-    const vix = (Math.random() * 10 + 15).toFixed(2);  // 15~25 사이 랜덤
-    document.getElementById('vixValue').textContent = vix;
+let vixChart = null;
 
-    const vixNum = parseFloat(vix);
-    const statusEl = document.getElementById('vixStatus');
+// Load VIX Data and Create Chart
+async function loadVIXData() {
+    try {
+        const response = await fetch('/api/vix/history?years=10');
+        const data = await response.json();
 
-    if (vixNum < 20) {
-        statusEl.textContent = 'Stable';
-        statusEl.className = 'badge bg-success fs-6';
-    } else if (vixNum < 35) {
-        statusEl.textContent = 'Elevated';
-        statusEl.className = 'badge bg-warning fs-6';
-    } else if (vixNum < 45) {
-        statusEl.textContent = 'Optimal Zone';
-        statusEl.className = 'badge bg-primary fs-6';
-    } else {
-        statusEl.textContent = 'Danger';
-        statusEl.className = 'badge bg-danger fs-6';
+        if (data.dates && data.dates.length > 0) {
+            // Update current VIX value
+            document.getElementById('vixValue').textContent = data.current || '-';
+
+            // Update badge based on current VIX
+            updateVIXBadge(data.current);
+
+            // Create chart
+            createVIXChart(data.dates, data.values);
+        }
+    } catch (error) {
+        console.error('VIX load error:', error);
+        document.getElementById('vixValue').textContent = 'N/A';
     }
 }
 
-// 분석 (시뮬레이션)
-function analyzeStock() {
-    const ticker = document.getElementById('tickerInput').value.toUpperCase();
+function updateVIXBadge(vix) {
+    const badge = document.getElementById('vixBadge');
 
-    if (!ticker) {
-        alert('티커를 입력해주세요.');
-        return;
-    }
-
-    document.getElementById('resultArea').style.display = 'block';
-
-    // 시뮬레이션 데이터
-    const score = (Math.random() * 1.5 - 0.3).toFixed(2);
-    const mktBeta = (Math.random() * 0.5 + 0.8).toFixed(2);
-    const secBeta = (Math.random() * 0.3 + 0.1).toFixed(2);
-    const avgRet = (Math.random() * 0.3 - 0.1).toFixed(2);
-    const vol = (Math.random() * 10 + 20).toFixed(1);
-
-    document.getElementById('idioScore').textContent = score;
-    document.getElementById('marketBeta').textContent = mktBeta;
-    document.getElementById('sectorBeta').textContent = secBeta;
-    document.getElementById('avgReturn').textContent = avgRet + '%';
-    document.getElementById('dailyVol').textContent = vol + '%';
-
-    // 인사이트
-    const scoreNum = parseFloat(score);
-    const insightEl = document.getElementById('insightText');
-    const alertEl = document.getElementById('insightAlert');
-
-    if (scoreNum > 0.5) {
-        insightEl.textContent = `🔥 High Impact: ${ticker}의 실적 발표가 변동성 대비 수익 효율을 크게 높여줍니다. (Delta: +${score})`;
-        alertEl.className = 'alert alert-success';
-    } else if (scoreNum > 0) {
-        insightEl.textContent = `📈 Moderate Impact: ${ticker}의 실적 발표가 긍정적 영향을 미칩니다. (Delta: +${score})`;
-        alertEl.className = 'alert alert-info';
+    if (vix < 20) {
+        badge.textContent = 'Stable';
+        badge.className = 'badge bg-success';
+    } else if (vix < 35) {
+        badge.textContent = 'Elevated';
+        badge.className = 'badge bg-warning';
+    } else if (vix <= 45) {
+        badge.textContent = 'Optimal Zone';
+        badge.className = 'badge bg-primary';
     } else {
-        insightEl.textContent = `🛡️ Low Impact: ${ticker}의 실적 발표를 제외해도 효율성 차이가 거의 없습니다. (Delta: ${score})`;
-        alertEl.className = 'alert alert-warning';
+        badge.textContent = 'Danger';
+        badge.className = 'badge bg-danger';
     }
 }
 
-// Event Listeners
-document.getElementById('analyzeBtn').addEventListener('click', analyzeStock);
-document.getElementById('tickerInput').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') analyzeStock();
+function createVIXChart(dates, values) {
+    const ctx = document.getElementById('vixChart').getContext('2d');
+
+    // Destroy existing chart if any
+    if (vixChart) {
+        vixChart.destroy();
+    }
+
+    vixChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: 'VIX Index',
+                data: values,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleFont: {
+                        size: 12
+                    },
+                    bodyFont: {
+                        size: 12
+                    },
+                    padding: 10,
+                    displayColors: false
+                }
+            },
+            scales: {
+                x: {
+                    display: true,
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        maxTicksLimit: 10,
+                        font: {
+                            size: 11
+                        }
+                    }
+                },
+                y: {
+                    display: true,
+                    grid: {
+                        color: '#f3f4f6'
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        }
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
+        }
+    });
+}
+
+// Load Earnings Events (Mock Data for Demo)
+async function loadEarningsEvents() {
+    // Show loading
+    document.getElementById('loadingState').style.display = 'block';
+    document.getElementById('tableContainer').style.display = 'none';
+    document.getElementById('emptyState').style.display = 'none';
+
+    try {
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Mock data (replace with actual API call)
+        const mockData = [
+            {ticker: 'AAPL', name: 'Apple Inc.', date: '2026-02-01', idioScore: 0.85, mktBeta: 1.2, dailyRet: 0.15, dailyVol: 22.3, vixMult: 1.0, status: 'Success'},
+            {ticker: 'MSFT', name: 'Microsoft Corporation', date: '2026-02-03', idioScore: 0.72, mktBeta: 1.1, dailyRet: 0.12, dailyVol: 19.8, vixMult: 1.0, status: 'Success'},
+            {ticker: 'GOOGL', name: 'Alphabet Inc.', date: '2026-02-05', idioScore: 0.63, mktBeta: 1.15, dailyRet: 0.10, dailyVol: 24.1, vixMult: 1.0, status: 'Success'},
+            {ticker: 'AMZN', name: 'Amazon.com Inc.', date: '2026-02-06', idioScore: 0.58, mktBeta: 1.3, dailyRet: 0.08, dailyVol: 26.5, vixMult: 1.0, status: 'Success'},
+            {ticker: 'NVDA', name: 'NVIDIA Corporation', date: '2026-02-08', idioScore: 0.91, mktBeta: 1.8, dailyRet: 0.18, dailyVol: 35.2, vixMult: 1.0, status: 'Success'},
+            {ticker: 'TSLA', name: 'Tesla Inc.', date: '2026-02-10', idioScore: 0.45, mktBeta: 2.1, dailyRet: 0.05, dailyVol: 42.3, vixMult: 1.0, status: 'Success'},
+            {ticker: 'META', name: 'Meta Platforms Inc.', date: '2026-02-12', idioScore: 0.68, mktBeta: 1.4, dailyRet: 0.11, dailyVol: 28.9, vixMult: 1.0, status: 'Success'}
+        ];
+
+        if (mockData.length > 0) {
+            renderEarningsTable(mockData);
+            document.getElementById('tableContainer').style.display = 'block';
+        } else {
+            document.getElementById('emptyState').style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Earnings load error:', error);
+        document.getElementById('emptyState').style.display = 'block';
+    } finally {
+        document.getElementById('loadingState').style.display = 'none';
+    }
+}
+
+function renderEarningsTable(data) {
+    const tbody = document.getElementById('earningsTableBody');
+    tbody.innerHTML = '';
+
+    data.forEach(item => {
+        const row = document.createElement('tr');
+
+        // Score badge color
+        let scoreBadgeClass = 'bg-secondary';
+        if (item.idioScore > 0.7) scoreBadgeClass = 'bg-success';
+        else if (item.idioScore > 0.4) scoreBadgeClass = 'bg-primary';
+        else scoreBadgeClass = 'bg-warning';
+
+        // Status icon
+        let statusIcon = '<i class="bi bi-check-circle-fill text-success"></i>';
+        if (item.status !== 'Success') {
+            statusIcon = '<i class="bi bi-x-circle-fill text-danger"></i>';
+        }
+
+        row.innerHTML = `
+            <td><span class="font-mono font-weight-bold">${item.ticker}</span></td>
+            <td>${item.name}</td>
+            <td><span class="text-muted small">${item.date}</span></td>
+            <td class="text-center">
+                <span class="badge badge-score ${scoreBadgeClass}">${item.idioScore.toFixed(2)}</span>
+            </td>
+            <td class="text-end">${item.mktBeta.toFixed(2)}</td>
+            <td class="text-end"><span class="${item.dailyRet >= 0 ? 'text-success' : 'text-danger'}">${item.dailyRet >= 0 ? '+' : ''}${item.dailyRet.toFixed(2)}%</span></td>
+            <td class="text-end">${item.dailyVol.toFixed(1)}%</td>
+            <td class="text-center"><span class="text-muted">×${item.vixMult.toFixed(1)}</span></td>
+            <td class="text-center">${statusIcon}</td>
+        `;
+
+        tbody.appendChild(row);
+    });
+}
+
+// Refresh Button
+document.getElementById('refreshBtn').addEventListener('click', () => {
+    loadEarningsEvents();
 });
 
-// 초기화
-loadVIX();
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    loadVIXData();
+    loadEarningsEvents();
+});
 </script>
 {% endblock %}
